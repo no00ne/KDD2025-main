@@ -53,7 +53,7 @@ def parse_args():
 
     args = parser.parse_args()
     
-    with open('../../osm_data/poi_distribution.pk', 'rb') as f:
+    with open('/home/yangxiaojie/KDD2025/osm_data/poi_distribution.pk', 'rb') as f:
         poi_distribution = pk.load(f)
 
     keys = set([poi_type for region in poi_distribution for poi_type in poi_distribution[region]])
@@ -88,7 +88,7 @@ def set_seed(seed):
 def pack_source(args):
     zip_name = 'source_{}.zip'.format(args.expid)
     file_list = ['dataloader.py', 'model.py', 'losses.py', 'run.py', 'train.py', 'normalization.py']
-    output_dir = './sources/'
+    output_dir = '/home/yangxiaojie/KDD2025/model/sources/'
     create_zip(zip_name, file_list, output_dir)
     args.logger.info('Packed source code saved!')
 
@@ -116,7 +116,7 @@ def load_dataloader(file_path):
     dataloader = torch.utils.data.DataLoader(dataset, **dataloader_params)
     return dataloader
    
-def get_exp_id(directory = './log/'):
+def get_exp_id(directory = '/home/yangxiaojie/KDD2025/model/log/'):
     exp_ids = []
     expid = random.randint(1000, 9999)
     for root, dirs, files in os.walk(directory):
@@ -170,11 +170,11 @@ def run_experiment(args, seed):
         scaler = dataset.scaler
         if args.save:
             tail = '_in{}_out{}_batch{}_causal{}.pkl'.format(args.input_window, args.output_window, args.batch_size, args.causal)
-            save_dataloader(train_dataloader, './cache/train' + tail)
-            save_dataloader(valid_dataloader, './cache/valid' + tail)
-            save_dataloader(test_dataloader, './cache/test' + tail)
+            save_dataloader(train_dataloader, '/home/yangxiaojie/KDD2025/model/cache/train' + tail)
+            save_dataloader(valid_dataloader, '/home/yangxiaojie/KDD2025/model/cache/valid' + tail)
+            save_dataloader(test_dataloader, '/home/yangxiaojie/KDD2025/model/cache/test' + tail)
             
-            with open('./cache/scaler.pkl' + tail, 'wb') as f:
+            with open('/home/yangxiaojie/KDD2025/model/cache/scaler.pkl' + tail, 'wb') as f:
                 pk.dump(scaler, f)
     else:
         train_dataloader = load_dataloader('./cache/train' + tail)
@@ -198,9 +198,9 @@ def run_experiment(args, seed):
     metrics = test(args, model, test_dataloader, scaler)
     
     if seed is not None:
-        model_path = f'./models/model_{args.expid}_{seed}_{args.causal}.pth'
+        model_path = f'/home/yangxiaojie/KDD2025/model/models/model_{args.expid}_{seed}_{args.causal}.pth'
     else:
-        model_path = f'./models/model_{args.expid}_random_{args.causal}.pth'
+        model_path = f'/home/yangxiaojie/KDD2025/model/models/model_{args.expid}_random_{args.causal}.pth'
     torch.save(model, model_path)
     args.logger.info(f"Model saved to {model_path}")
 

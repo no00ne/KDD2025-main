@@ -208,14 +208,14 @@ class CausalDatasetPreloader():
     
     def get_flows(self):
         self.args.logger.info('Reading Regional flows data...')
-        flows = np.load('../data/flows.npy')
+        flows = np.load('/home/yangxiaojie/KDD2025/model/data/flows.npy')
         flows = flows[:, ::self.args.interval, :]
         self.flows = flows.reshape(len(self.adjacency_matrix), self.args.reg_num)
         self.args.logger.info('Regional flows data loaded!')
         self.args.logger.info('Regional flows datashape: ({}, {})'.format(self.flows.shape[0], self.flows.shape[1]))
     
     def get_adjacency(self):
-        with open('../data/odmetrics_sparse_tensors.pk', 'rb') as f:
+        with open('/home/yangxiaojie/KDD2025/model/data/odmetrics_sparse_tensors.pk', 'rb') as f:
             self.adjacency_matrix = pk.load(f)
         self.args.logger.info('Regional adjacency matrix loaded!')
         self.args.logger.info('Regional adjacency matrix length: ({})'.format(len(self.adjacency_matrix)))
@@ -224,7 +224,7 @@ class CausalDatasetPreloader():
     def get_treatment(self):
         if self.args.cache:
             self.args.logger.info('Load treatment from cache file...')
-            with open('../data/treat_dict.pk', 'rb') as f:
+            with open('/home/yangxiaojie/KDD2025/model/data/treat_dict.pk', 'rb') as f:
                 self.treat_dict = pk.load(f)
             self.args.logger.info('Treatment cache files loaded!')
         else:
