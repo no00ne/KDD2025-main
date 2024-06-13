@@ -138,7 +138,7 @@ def main():
     expid = get_exp_id()
     
     
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename='./log/Training_{}.log'.format(expid), filemode='w')
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename='/home/yangxiaojie/KDD2025/model/log/Training_{}.log'.format(expid), filemode='w')
     logger = logging.getLogger()
     args.expid = expid
     logger.info('Argument settings:')
