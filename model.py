@@ -352,18 +352,22 @@ class CausalFlow(nn.Module):
         
         treat = treat.view(x.shape[0], x.shape[1], x.shape[2], -1)
         treat = treat.permute(0, 2, 1 ,3)
-        treat += self.get_position_encoding(self.args.input_window, self.args.treat_hidden)
+        #treat += self.get_position_encoding(self.args.input_window, self.args.treat_hidden)
         
         treat = treat.reshape(x.shape[0] * x.shape[2], x.shape[1], -1)
         
-        mask = torch.triu(torch.ones(self.args.input_window, self.args.input_window) * float('-inf'), diagonal=1).to(self.args.device)
+        #mask = torch.triu(torch.ones(self.args.input_window, self.args.input_window) * float('-inf'), diagonal=1).to(self.args.device)
         
-        attn_treat, _ = self.attn(treat, treat, treat, attn_mask = mask)
+        #attn_treat, _ = self.attn(treat, treat, treat, attn_mask = mask)
+        attn_treat, _ = self.attn(treat, treat, treat)
         return attn_treat.mean(dim = 1)
         #return self.encoder(treat)[:, -1, :]
     
     def forward(self, x, t, treat, adj, mask):
         #print(treat.shape)
+        
+        if self.args.causal:
+            treat = self.treat_encoder(x, treat)
         
         x = x.squeeze(-1).permute(0, 2, 1)
         t = t.permute(0, 2, 1)
@@ -388,7 +392,6 @@ class CausalFlow(nn.Module):
         #print(z.shape, treat.shape)
         #output is confounder z  
         if self.args.causal:
-            treat = self.treat_encoder(x, treat)
             outs = []
             ws = []
             for i in range(self.args.output_window):

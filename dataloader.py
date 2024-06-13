@@ -243,7 +243,7 @@ class CausalDatasetPreloader():
 #                 self.args.logger.info('Treatment cache files saved!')
     
     def process_treat(self):
-        treatment_path = '/home/yangxiaojie/KDD2025/samples・説明書/treatment.pk'
+        treatment_path = '/home/yangxiaojie/KDD2025/samples・説明書/treatment_all.pk'
         self.args.logger.info('Reading news text embedding treatments from {}...'.format(treatment_path))
         with open(treatment_path, 'rb') as f:
             treatments = pk.load(f)
