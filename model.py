@@ -326,10 +326,10 @@ class CausalFlow(nn.Module):
             self.res_blocks.append(ResNormal(self.args))
             
         if self.args.causal:
-            self.admit = ADMIT(self.args)
-#             self.admits = nn.ModuleList()
-#             for i in range(self.args.output_window):
-#                 self.admits.append(ADMIT(self.args))
+#             self.admit = ADMIT(self.args)
+            self.admits = nn.ModuleList()
+            for i in range(self.args.output_window):
+                self.admits.append(ADMIT(self.args))
         else:
             self.out = nn.Sequential(
                            nn.Linear(self.hidden_dim, self.args.output_window))
@@ -383,25 +383,25 @@ class CausalFlow(nn.Module):
             z.append(hidden)
         
         z = torch.stack(z, dim = 0)
-        z = z.reshape(z.shape[0] * z.shape[1], -1)
+        z = z.reshape(z.shape[0] * z.shape[1], self.args.hidden_dim)
 #         if self.args.causal:
 #             treat = treat.reshape(treat.shape[0] * treat.shape[1], -1)
         #print(z.shape, treat.shape)
         #output is confounder z  
         if self.args.causal:
-#             outs = []
-#             ws = []
-#             for i in range(self.args.output_window):
-#                 out, w, _ = self.admits[i](z, treat)
-#                 outs.append(out)
-#                 ws.append(w)
+            outs = []
+            ws = []
+            for i in range(self.args.output_window):
+                out, w, _ = self.admits[i](z, treat)
+                outs.append(out)
+                ws.append(w)
             
-#             outs = torch.stack(outs, dim = 0)
-#             ws = torch.stack(ws, dim = 0)
+            outs = torch.stack(outs, dim = 0)
+            ws = torch.stack(ws, dim = 0)
 
-            out, w, _ = self.admit(z, treat)
-            return out, w, z, treat
-            #return outs.squeeze(-1).permute(1, 0), ws.squeeze(-1).permute(1, 0), z, treat
+#             out, w, _ = self.admit(z, treat)
+#             return out, w, z, treat
+            return outs.squeeze(-1).permute(1, 0), ws.squeeze(-1).permute(1, 0), z, treat
         else:
             return self.out(z), None, None, None
 
