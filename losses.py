@@ -42,9 +42,9 @@ def calculate_loss(args, x, y, y_pre, scaler, w = None, treat =None):
         #mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), treat, args.k)
         #mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), label.cpu())
         mmd = 0.0
-        for i in range(w.shape[-1]): 
-            mmd += IPM_loss(x, w[:, i:i+1], treat, args.k)  # 计算最大均值差异损失
-        return mmd + loss
+        for i in range(args.output_window): 
+            mmd += IPM_loss(x, w[:, i:i+1], treat, args.k) # 计算最大均值差异损失
+        return mmd/args.output_window + loss
     else:
         y_pre = y_pre.reshape(y.shape)
         return F.mse_loss(y.squeeze(), y_pre.squeeze())
@@ -63,8 +63,8 @@ def mape_loss(y_true, y_pred):
 def rwt_regression_loss(w, y, y_pre, scaler):
     #mae might be better than mse here <- hard to say...
     losses = ((y_pre.squeeze() - y.squeeze())**2) * w.squeeze()
-    #return losses.mean()
-    return losses.mean(dim = 0).sum()
+    return losses.mean()
+    #return losses.mean(dim = 0).sum()
 
 def pdist2sq(A, B):
     # Compute the squared Euclidean distance between each pair of vectors in A and B

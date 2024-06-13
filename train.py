@@ -75,11 +75,12 @@ def test(args, model, test_dataloader, scaler, mode = 'Test'):
         for batch in test_dataloader:
             batch = [_.to(args.device) for _ in batch]
             x, y, t, adj, treat, mask, indice = batch
+            y = y.permute(0, 2, 1)
             #y = y.permute(0, 2, 1).reshape(y.shape[0] * y.shape[-1], -1)
 
             y_pre, w, z, treat = model(x, t, treat, adj, mask)
             
-            y_pre = y_pre.reshape(y.shape)
+            y_pre = y_pre.unsqueeze(-1).reshape(y.shape)
             
             y_preds = []
             y_trues = []
@@ -90,8 +91,8 @@ def test(args, model, test_dataloader, scaler, mode = 'Test'):
             for i in range(args.output_window):
                 single_results[i] = {}
                 
-                y_pred = torch.flatten(scaler.inverse_transform(y_pre[:, i, :].cpu().squeeze())).detach().numpy().tolist()
-                y_true = torch.flatten(scaler.inverse_transform(y[:, i, :].cpu().squeeze())).detach().numpy().tolist()
+                y_pred = torch.flatten(scaler.inverse_transform(y_pre[:, :, i].cpu().squeeze())).detach().numpy().tolist()
+                y_true = torch.flatten(scaler.inverse_transform(y[:, :, i].cpu().squeeze())).detach().numpy().tolist()
 
                 single_results[i]['pred'] = y_pred
                 single_results[i]['true'] = y_true
