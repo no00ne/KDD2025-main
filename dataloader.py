@@ -113,8 +113,12 @@ class CausalDataset(Dataset):
     def __getitem__(self, idx):
         indice, x, y, t, treat, adj = self.data[idx][0], self.data[idx][1], self.data[idx][2], self.data[idx][3], self.data[idx][4], self.data[idx][5]
         x = x.unsqueeze(2)
-        
-        treat = torch.FloatTensor(treat)
+        if self.args.causal:
+            treat = torch.FloatTensor(treat)
+            mask = (treat.sum(dim=1) == 0)
+        else:
+            treat = torch.zeros((x.shape))
+            mask = (treat.sum(dim=1) == 0)
         
 #         if self.args.causal:
 #             treat_dict = self.data[idx][4]
@@ -122,7 +126,7 @@ class CausalDataset(Dataset):
 #                 if len(treat_dict[i]) != 0:
 #                     treat[i, :] = torch.FloatTensor(treat_dict[i])
         
-        mask = (treat.sum(dim=1) == 0)
+        
         
         #x, y, t, adj, treat, mask = x.to(self.device), y.to(self.device), t.to(self.device), adj.to(self.device), treat.to(self.device), mask.to(self.device)
         

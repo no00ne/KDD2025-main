@@ -301,17 +301,13 @@ class CausalFlow(nn.Module):
         self.tim_dim = args.tim_dim
         
         self.hidden_dim = args.hidden_dim
-        self.treat_linear = nn.Sequential(
-                        nn.Linear(self.args.treat_dim, self.args.treat_hidden),
-                        nn.ReLU())
-        
 #         self.encoder = nn.TransformerEncoderLayer(
 #             d_model=self.args.treat_hidden,  # 输入特征维度size
 #             nhead=4,   # 多头数量
 #             batch_first=True, # 类似LSTM/RNN的参数，是否设置地一个维度为batch size维度
 #         ).to(args.device)
         
-        self.attn = nn.MultiheadAttention(self.args.treat_hidden, 8, batch_first=True)
+        
         
         self.reg_embedding = nn.Embedding(self.reg_num, self.reg_dim)
         self.pt_trans = PTTrans(self.args)
@@ -326,6 +322,10 @@ class CausalFlow(nn.Module):
             self.res_blocks.append(ResNormal(self.args))
             
         if self.args.causal:
+            self.treat_linear = nn.Sequential(
+                        nn.Linear(self.args.treat_dim, self.args.treat_hidden),
+                        nn.ReLU())
+            self.attn = nn.MultiheadAttention(self.args.treat_hidden, 8, batch_first=True)
 #             self.admit = ADMIT(self.args)
             self.admits = nn.ModuleList()
             for i in range(self.args.output_window):
@@ -364,7 +364,6 @@ class CausalFlow(nn.Module):
     
     def forward(self, x, t, treat, adj, mask):
         #print(treat.shape)
-        treat = self.treat_encoder(x, treat)
         
         x = x.squeeze(-1).permute(0, 2, 1)
         t = t.permute(0, 2, 1)
@@ -389,6 +388,7 @@ class CausalFlow(nn.Module):
         #print(z.shape, treat.shape)
         #output is confounder z  
         if self.args.causal:
+            treat = self.treat_encoder(x, treat)
             outs = []
             ws = []
             for i in range(self.args.output_window):
