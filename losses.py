@@ -38,11 +38,11 @@ def validation_loss(y_preds, y_trues):
 def calculate_loss(args, x, y, y_pre, scaler, w = None, treat =None):
     if args.causal:
         loss = rwt_regression_loss(w, y, y_pre, scaler)  # 计算加权回归损失
-        mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), treat, args.k)
+        #mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), treat, args.k)
         #mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), label.cpu())
-#         for i in range(w.shape[-1]): 
-#             mmd += IPM_loss(x, w[:, i:i+1], label.cpu())  # 计算最大均值差异损失
-        #print(loss, mmd)
+        mmd = 0.0
+        for i in range(w.shape[-1]): 
+            mmd += IPM_loss(x, w[:, i:i+1], treat, args.k)  # 计算最大均值差异损失
         return mmd + loss
     else:
         y_pre = y_pre.reshape(y.shape)
