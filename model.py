@@ -137,7 +137,7 @@ class ADMIT(nn.Module):
         init=args.init
         self.cfg_hidden = [(input_dim, 64, 1, 'relu'), (64, 64, 1, 'relu')]
         #self.cfg_hidden = [(input_dim, 64, 1, 'relu')]
-        self.cfg = [(64, 64, 1, 'relu'), (64, self.args.output_window, 1, 'id')]
+        self.cfg = [(64, 64, 1, 'relu'), (64, 1, 1, 'id')]
         #self.cfg = [(128, 1, 1, 'id')]
         self.degree = 2
         self.knots = [0.33, 0.66]
@@ -401,6 +401,7 @@ class CausalFlow(nn.Module):
 
 #             out, w, _ = self.admit(z, treat)
 #             return out, w, z, treat
+            #print(outs.shape, ws.shape)
             return outs.squeeze(-1).permute(1, 0), ws.squeeze(-1).permute(1, 0), z, treat
         else:
             return self.out(z), None, None, None

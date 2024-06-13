@@ -37,6 +37,7 @@ def validation_loss(y_preds, y_trues):
 
 def calculate_loss(args, x, y, y_pre, scaler, w = None, treat =None):
     if args.causal:
+        #print(y.shape)
         loss = rwt_regression_loss(w, y, y_pre, scaler)  # 计算加权回归损失
         #mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), treat, args.k)
         #mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), label.cpu())
