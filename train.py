@@ -71,6 +71,12 @@ def test(args, model, test_dataloader, scaler, mode = 'Test'):
     model.eval()  # 设置模型为评估模式
     y_preds = []
     y_trues = []
+    single_results = {}
+    for i in range(args.output_window):
+        single_results[i] = {}
+        single_results[i]['pred'] = []
+        single_results[i]['true'] = []
+    
     with torch.no_grad():  # 禁用梯度计算
         for batch in test_dataloader:
             batch = [_.to(args.device) for _ in batch]
@@ -82,20 +88,17 @@ def test(args, model, test_dataloader, scaler, mode = 'Test'):
             
             y_pre = y_pre.unsqueeze(-1).reshape(y.shape)
             
-            y_preds = []
-            y_trues = []
-            
             #print(y.shape, y_pre.shape)
             
-            single_results = {}
+            
             for i in range(args.output_window):
                 single_results[i] = {}
                 
                 y_pred = torch.flatten(scaler.inverse_transform(y_pre[:, :, i].cpu().squeeze())).detach().numpy().tolist()
                 y_true = torch.flatten(scaler.inverse_transform(y[:, :, i].cpu().squeeze())).detach().numpy().tolist()
 
-                single_results[i]['pred'] = y_pred
-                single_results[i]['true'] = y_true
+                single_results[i]['pred'] += y_pred
+                single_results[i]['true'] += y_true
 
                 y_preds += y_pred
                 y_trues += y_true

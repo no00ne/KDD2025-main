@@ -352,7 +352,7 @@ class CausalFlow(nn.Module):
         
         treat = treat.view(x.shape[0], x.shape[1], x.shape[2], -1)
         treat = treat.permute(0, 2, 1 ,3)
-        #treat += self.get_position_encoding(self.args.input_window, self.args.treat_hidden)
+        treat += self.get_position_encoding(self.args.input_window, self.args.treat_hidden)
         
         treat = treat.reshape(x.shape[0] * x.shape[2], x.shape[1], -1)
         
