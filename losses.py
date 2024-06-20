@@ -7,6 +7,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.cluster import KMeans
 import pickle as pk
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.cluster import DBSCAN
+from sklearn.neighbors import NearestNeighbors
+from sklearn.preprocessing import StandardScaler
 
 
 def validation_loss(y_preds, y_trues):
@@ -39,12 +44,14 @@ def calculate_loss(args, x, y, y_pre, scaler, w = None, treat =None):
     if args.causal:
         #print(y.shape)
         loss = rwt_regression_loss(w, y, y_pre, scaler)  # 计算加权回归损失
-        #mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), treat, args.k)
-        #mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), label.cpu())
-        mmd = 0.0
-        for i in range(args.output_window): 
-            mmd += IPM_loss(x, w[:, i:i+1], treat, args.k) # 计算最大均值差异损失
-        return mmd/args.output_window + loss
+        #mmd = IPM_loss(x, w, treat, args.k)
+        labels = treat_label(treat)
+        mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), labels)
+#         mmd = 0.0
+#         for i in range(args.output_window): 
+#             mmd += IPM_loss(x, w[:, i:i+1], labels) # 计算最大均值差异损失
+#         mmd /= args.output_window
+        return mmd + loss
     else:
         y_pre = y_pre.reshape(y.shape)
         return F.mse_loss(y.squeeze(), y_pre.squeeze())
@@ -91,47 +98,129 @@ def calculate_mmd(A, B, rbf_sigma=1):
     mmd = Kaa.mean() - 2 * Kab.mean() + Kbb.mean()
     return mmd
 
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
 
-def treat_order(treat):
-    data = treat.detach().cpu().numpy()
-    boundary_index = np.argmax(np.linalg.norm(data - np.mean(data, axis=0), axis=1))
-    similarity_matrix = cosine_similarity(data)
-    index = boundary_index  # 第一个数据点
-    similarities = similarity_matrix[index]
-    sorted_indices = np.argsort(-similarities)  # 从高到低排序
-    sorted_similarities = similarities[sorted_indices]
-    return sorted_indices
+def treat_label(t):
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(t.detach().cpu().numpy())
+    data = X_scaled
 
-def IPM_loss(x, w, t, k = 20, rbf_sigma=1):
-    #x = x.squeeze(1)
-    idx = treat_order(t)
-    splits = np.array_split(idx, k)
+    # 选择DBSCAN的参数
+    # 使用K距离图（k-distance plot）来选择eps
+    neighbors = NearestNeighbors(n_neighbors=10)
+    neighbors_fit = neighbors.fit(data)
+    distances, indices = neighbors_fit.kneighbors(data)
+    distances = np.sort(distances, axis=0)
+    distances = distances[:, 1]
+
+    # 自动选择拐点
+    # 计算一阶导数
+    derivatives = np.diff(distances)
+    # 计算二阶导数
+    second_derivatives = np.diff(derivatives)
+    # 找到二阶导数的最大值对应的点
+    eps_index = np.argmax(second_derivatives) + 1
+    eps = distances[eps_index]
     
-    xw = x * w
-    sorted_x = x[idx]
-    sorted_xw = xw[idx]
+
+    # 使用DBSCAN进行聚类
+    min_samples = 10
+    db = DBSCAN(eps=eps, min_samples=min_samples).fit(data)
+    labels = db.labels_
+    return labels
+
+def IPM_loss(x, w, labels, rbf_sigma=1):
+    k = len(set(labels))
+    if k == 1:
+            return 0.0
+    else:
+        xw = x * w
+        split_x = [x[labels == i] for i in set(labels)]
+        split_xw = [xw[labels == i] for i in set(labels)]
+
+        loss = torch.zeros(k)
     
-    split_x = torch.tensor_split(sorted_x, k)
-    split_xw = torch.tensor_split(sorted_xw, k)
-    
-    loss = torch.zeros(k)
-    
-    for i  in range(k):
-        A = split_xw[i]
-        tmp_loss = torch.zeros(k - 1)
-        idx = 0
-        for j in range(k):
-            if i == j:
-                continue
-            B = split_x[j]
-            partial_loss = calculate_mmd(A, B, 1)
-            tmp_loss[idx] = partial_loss
-            idx += 1
-        loss[i] = tmp_loss.max()
+        for i in range(k):
+            A = split_xw[i]
+            tmp_loss = torch.zeros(k - 1)
+            idx = 0
+            for j in range(k):
+                if i == j:
+                    continue
+                B = split_x[j]
+                partial_loss = calculate_mmd(A, B, rbf_sigma)
+                tmp_loss[idx] = partial_loss
+                idx += 1
+            loss[i] = tmp_loss.max()
 
         return loss.mean()
+
+# def treat_order(treat):
+#     data = treat.detach().cpu().numpy()
+#     boundary_index = np.argmax(np.linalg.norm(data - np.mean(data, axis=0), axis=1))
+#     similarity_matrix = cosine_similarity(data)
+#     index = boundary_index  # 第一个数据点
+#     similarities = similarity_matrix[index]
+#     sorted_indices = np.argsort(-similarities)  # 从高到低排序
+#     sorted_similarities = similarities[sorted_indices]
+#     return sorted_indices
+
+# def IPM_loss(x, w, idx, k = 20, rbf_sigma=1):
+#     #x = x.squeeze(1)
+# #     idx = treat_order(t)
+#     splits = np.array_split(idx, k)
+    
+#     xw = x * w
+#     sorted_x = x[idx]
+#     sorted_xw = xw[idx]
+    
+#     split_x = torch.tensor_split(sorted_x, k)
+#     split_xw = torch.tensor_split(sorted_xw, k)
+    
+#     loss = torch.zeros(k)
+    
+#     for i  in range(k):
+#         A = split_xw[i]
+#         tmp_loss = torch.zeros(k - 1)
+#         idx = 0
+#         for j in range(k):
+#             if i == j:
+#                 continue
+#             B = split_x[j]
+#             partial_loss = calculate_mmd(A, B, 1)
+#             tmp_loss[idx] = partial_loss
+#             idx += 1
+#         loss[i] = tmp_loss.max()
+
+#         return loss.mean()
+
+# def IPM_loss(x, w, t, k = 20, rbf_sigma=1):
+#     #x = x.squeeze(1)
+#     idx = treat_order(t)
+#     splits = np.array_split(idx, k)
+    
+#     xw = x * w
+#     sorted_x = x[idx]
+#     sorted_xw = xw[idx]
+    
+#     split_x = torch.tensor_split(sorted_x, k)
+#     split_xw = torch.tensor_split(sorted_xw, k)
+    
+#     loss = torch.zeros(k)
+    
+#     for i  in range(k):
+#         A = split_xw[i]
+#         tmp_loss = torch.zeros(k - 1)
+#         idx = 0
+#         for j in range(k):
+#             if i == j:
+#                 continue
+#             B = split_x[j]
+#             partial_loss = calculate_mmd(A, B, 1)
+#             tmp_loss[idx] = partial_loss
+#             idx += 1
+#         loss[i] = tmp_loss.max()
+
+#         return loss.mean()
 
 # def IPM_loss(x, w, l, rbf_sigma=1):
 #     #x = x.squeeze(1)

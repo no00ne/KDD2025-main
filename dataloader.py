@@ -114,7 +114,7 @@ class CausalDataset(Dataset):
         indice, x, y, t, treat, adj = self.data[idx][0], self.data[idx][1], self.data[idx][2], self.data[idx][3], self.data[idx][4], self.data[idx][5]
         x = x.unsqueeze(2)
         if self.args.causal:
-            treat = torch.FloatTensor(treat)
+            treat = torch.FloatTensor(treat) / 100
             mask = (treat.sum(dim=1) == 0)
         else:
             treat = torch.zeros((x.shape))
@@ -243,7 +243,9 @@ class CausalDatasetPreloader():
 #                 self.args.logger.info('Treatment cache files saved!')
     
     def process_treat(self):
-        treatment_path = '/home/yangxiaojie/KDD2025/samples・説明書/treatment_all.pk'
+        
+        treatment_path = '/home/yangxiaojie/KDD2025/samples・説明書/treatment_scores_0618.pk'
+        #treatment_path = '/home/yangxiaojie/KDD2025/samples・説明書/treatment_all.pk'
         self.args.logger.info('Reading news text embedding treatments from {}...'.format(treatment_path))
         with open(treatment_path, 'rb') as f:
             treatments = pk.load(f)
@@ -252,12 +254,16 @@ class CausalDatasetPreloader():
         alltreat = []
         
         alltreat = np.zeros((len(self.adjacency_matrix), self.args.reg_num, self.args.treat_dim))
+        alltreat[:, :, 3] = 100
         
         for d in treatments:
             for t in treatments[d]:
                 treat_dict[d * self.args.tim_num + t] = {}
                 for c in treatments[d][t]:
-                    treat = np.mean(treatments[d][t][c], axis = 0)
+                    #treat = np.mean(treatments[d][t][c], axis = 0)
+                    treat = np.mean([_ for _ in treatments[d][t][c] if len(_) == self.args.treat_dim], axis = 0)
+                    if np.isnan(treat).any():
+                        treat = np.array([0, 0, 0, 100, 0, 0, 0, 0, 0, 0])
                     alltreat[d * self.args.tim_num + t, c] = treat
                     #alltreat.append(treat)
 

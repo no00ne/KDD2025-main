@@ -91,9 +91,7 @@ def test(args, model, test_dataloader, scaler, mode = 'Test'):
             #print(y.shape, y_pre.shape)
             
             
-            for i in range(args.output_window):
-                single_results[i] = {}
-                
+            for i in range(args.output_window):                
                 y_pred = torch.flatten(scaler.inverse_transform(y_pre[:, :, i].cpu().squeeze())).detach().numpy().tolist()
                 y_true = torch.flatten(scaler.inverse_transform(y[:, :, i].cpu().squeeze())).detach().numpy().tolist()
 
