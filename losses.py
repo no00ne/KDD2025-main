@@ -40,17 +40,33 @@ def validation_loss(y_preds, y_trues):
         'MAPE': mape
     }
 
-def calculate_loss(args, x, y, y_pre, scaler, w = None, treat =None):
+def calculate_loss(args, x, y, y_pre, scaler, w = None, treat =None, treat_base = None):
     if args.causal:
-        #print(y.shape)
-        loss = rwt_regression_loss(w, y, y_pre, scaler)  # 计算加权回归损失
+        batch_size = y.shape[0]
+#         x = x.reshape(batch_size, args.reg_num, args.hidden_dim)
+#         w = w.reshape(batch_size, args.reg_num, args.output_window)
+#         
+        y_pre = y_pre.reshape(y.shape)
+        w_reshape = w.reshape(y.shape)
+        loss = rwt_regression_loss(w_reshape, y, y_pre, scaler)  # 计算加权回归损失
         #mmd = IPM_loss(x, w, treat, args.k)
-        labels = treat_label(treat)
-        mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), labels)
+        
+        #mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), labels)
+
+        #treat = treat.reshape(batch_size, args.reg_num, args.treat_hidden)
 #         mmd = 0.0
-#         for i in range(args.output_window): 
+#         labels = treat_label(treat, treat_base)
+#         for i in range(args.output_window):
+#             #print(x[i, :, :].shape, w[i, :, j:j+1].shape)
 #             mmd += IPM_loss(x, w[:, i:i+1], labels) # 计算最大均值差异损失
-#         mmd /= args.output_window
+#         mmd = 0.0
+#         labels = treat_label(treat, treat_base, batch_size)
+#         for i in range(batch_size):
+#             for j in range(args.output_window):
+#                 #print(x[i, :, :].shape, w[i, :, j:j+1].shape)
+#                 mmd += IPM_loss(x[i, :, :], w[i, :, j:j+1], labels[i]) # 计算最大均值差异损失
+        labels = treat_label(treat, treat_base)
+        mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), labels) # 计算最大均值差异损失
         return mmd + loss
     else:
         y_pre = y_pre.reshape(y.shape)
@@ -99,36 +115,67 @@ def calculate_mmd(A, B, rbf_sigma=1):
     return mmd
 
 
-def treat_label(t):
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(t.detach().cpu().numpy())
-    data = X_scaled
+# def treat_label(t):
+#     scaler = StandardScaler()
+#     X_scaled = scaler.fit_transform(t.detach().cpu().numpy())
+#     data = X_scaled
 
-    # 选择DBSCAN的参数
-    # 使用K距离图（k-distance plot）来选择eps
-    neighbors = NearestNeighbors(n_neighbors=10)
-    neighbors_fit = neighbors.fit(data)
-    distances, indices = neighbors_fit.kneighbors(data)
-    distances = np.sort(distances, axis=0)
-    distances = distances[:, 1]
+# #     # 选择DBSCAN的参数
+# #     # 使用K距离图（k-distance plot）来选择eps
+# #     neighbors = NearestNeighbors(n_neighbors=10)
+# #     neighbors_fit = neighbors.fit(data)
+# #     distances, indices = neighbors_fit.kneighbors(data)
+# #     distances = np.sort(distances, axis=0)
+# #     distances = distances[:, 1]
 
-    # 自动选择拐点
-    # 计算一阶导数
-    derivatives = np.diff(distances)
-    # 计算二阶导数
-    second_derivatives = np.diff(derivatives)
-    # 找到二阶导数的最大值对应的点
-    eps_index = np.argmax(second_derivatives) + 1
-    eps = distances[eps_index]
+# #     # 自动选择拐点
+# #     # 计算一阶导数
+# #     derivatives = np.diff(distances)
+# #     # 计算二阶导数
+# #     second_derivatives = np.diff(derivatives)
+# #     # 找到二阶导数的最大值对应的点
+# #     eps_index = np.argmax(second_derivatives) + 1
+# #     eps = distances[eps_index]
     
 
-    # 使用DBSCAN进行聚类
-    min_samples = 10
-    db = DBSCAN(eps=eps, min_samples=min_samples).fit(data)
-    labels = db.labels_
-    return labels
+#     # 使用DBSCAN进行聚类
+#     min_samples = 10
+#     eps = 0.05
+#     db = DBSCAN(eps=eps, min_samples=min_samples).fit(data)
+#     labels = db.labels_
+#     return labels
 
-def IPM_loss(x, w, labels, rbf_sigma=1):
+# def treat_label(data, base, batch_size):
+#     data = data.cpu().detach().numpy()
+#     base = base.cpu().detach().numpy()
+#     similarities = cosine_similarity(data, base)
+#     similarities = similarities.reshape(batch_size, 490)
+#     batch_labels = []
+#     for i in range(batch_size):
+#         similarity = similarities[i]
+#         bins = np.arange(0, 1.1, 0.1)
+#         labels = np.digitize(similarity, bins, right=True)
+#         unique_labels = np.unique(labels)
+#         label_mapping = {label: idx for idx, label in enumerate(unique_labels)}
+#         new_labels = np.array([label_mapping[label] for label in labels])
+#         batch_labels.append(new_labels)
+#     return batch_labels
+
+def treat_label(data, base):
+    data = data.cpu().detach().numpy()
+    base = base.cpu().detach().numpy()
+    similarities = cosine_similarity(data, base)
+    similarities = np.array([s[0] for s in similarities])
+    bins = np.arange(0, 1.1, 0.1)
+    labels = np.digitize(similarities, bins, right=True)
+    unique_labels = np.unique(labels)
+    label_mapping = {label: idx for idx, label in enumerate(unique_labels)}
+    new_labels = np.array([label_mapping[label] for label in labels])
+
+    return new_labels
+
+def IPM_loss(x, w, labels, rbf_sigma=8):
+    labels = np.array(labels)
     k = len(set(labels))
     if k == 1:
             return 0.0

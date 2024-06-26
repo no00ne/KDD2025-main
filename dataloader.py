@@ -5,7 +5,38 @@ from sklearn.cluster import KMeans
 from tqdm import tqdm
 import pickle as pk
 from normalization import *
+from datetime import datetime, timedelta
 
+def calculate_hour(hours_passed, start_date = '2023-04-01'):
+    # 将起始日期转换为 datetime 对象
+    start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+    
+    # 计算目标日期时间
+    target_datetime = start_datetime + timedelta(hours=hours_passed)
+    
+    # 检查是否为周末
+    is_weekend = target_datetime.weekday() >= 5  # 5 是周六，6 是周日
+    
+    # 计算目标小时（0-23 或 24-47）
+    if is_weekend:
+        result_hour = target_datetime.hour + 24
+    else:
+        result_hour = target_datetime.hour
+    
+    return result_hour
+
+def calculate_week_hour(hours_passed, start_date = '2023-04-01'):
+    # 将起始日期转换为 datetime 对象
+    start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+    
+    # 计算目标日期时间
+    target_datetime = start_datetime + timedelta(hours=hours_passed)
+    
+    # 计算从周开始的小时数（0-167）
+    days_since_week_start = target_datetime.weekday()  # 星期一为0，星期日为6
+    result_hour = days_since_week_start * 24 + target_datetime.hour
+    
+    return result_hour
 
 def mean_along_dim0(sparse_tensor):
     # 获取稀疏张量的索引和值
@@ -197,7 +228,8 @@ class CausalDatasetPreloader():
             #adj = self.adjacency_matrix[d * self.args.tim_num + last_t]
             adj = combine_sparse_tensors(self.adjacency_matrix[indice[0] : indice[self.args.input_window]])
             indice = torch.LongTensor(indice)
-            t = indice[:self.args.input_window] % self.args.tim_num  # 获取时间步
+            t = torch.LongTensor([calculate_week_hour(i.numpy().tolist()) for i in indice[:self.args.input_window]])
+            #t = indice[:self.args.input_window] % self.args.tim_num  # 获取时间步
             t = t.unsqueeze(1).expand(-1, x.shape[1])  # 扩展时间步的维度
             
             data.append([indice, x, y, t, treats, adj])

@@ -29,14 +29,18 @@ def train(args, model, optimizer, scheduler, train_dataloader, valid_dataloader,
                 batch = [_.to(args.device) for _ in batch]
                 x, y, t, adj, treat, mask, indice = batch
                 #print(y.shape)
-                y = y.permute(0, 2, 1).reshape(y.shape[0] * y.shape[-1], -1)
+                y = y.permute(0, 2, 1)
+                #y = y.permute(0, 2, 1).reshape(y.shape[0] * y.shape[-1], -1)
                 #print(x.shape, y.shape, t.shape, adj.shape, treat.shape, mask.shape, indice.shape)
                 y_pre, w, z, t = model(x, t, treat, adj, mask)
+             
                 
 #                 if args.causal:
 #                     label = label.reshape(label.shape[0] * label.shape[1])
-
-                losses += calculate_loss(args, z, y, y_pre, scaler, w, t)
+                if args.causal:
+                    losses += calculate_loss(args, z, y, y_pre, scaler, w, t, model.get_treat_base())
+                else:
+                    losses += calculate_loss(args, z, y, y_pre, scaler)
                 
                 #losses /= len(batch)
                 losses.backward()  # 反向传播
