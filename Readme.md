@@ -28,7 +28,11 @@ python run.py --causal True --input_window 24 --output_window 24 --device cuda:0
 ```
 
 --causal: Set this to True to enable causal predictions.
+
 --input_window: The number of input time steps.
+
 --output_window: The number of output time steps.
+
 --device: Specify the device for computation (e.g., cuda:0 for GPU or cpu for CPU).
+
 --batch_size: Set the batch size for training.
