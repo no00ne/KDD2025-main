@@ -17,8 +17,6 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="dose-response estimation via neural network")
-
     parser.add_argument('--reg_dim', type=int, default=64)
     parser.add_argument('--tim_dim', type=int, default=64)
     parser.add_argument('--hidden_dim', type=int, default=64)
