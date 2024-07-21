@@ -7,49 +7,39 @@ from normalization import StandardScaler
 from losses import calculate_loss, validation_loss, rwt_regression_loss, IPM_loss
 
 def train(args, model, optimizer, scheduler, train_dataloader, valid_dataloader, scaler):
-    best_loss = float('inf')  # 记录前一次的验证损失，用于比较
+    best_loss = float('inf')
     best_model = None
-    avg_losses = []  # 用于存储每个epoch的平均损失
+    avg_losses = [] 
     args.logger.info('Training...')
 
     for epoch in range(1, args.num_epoch + 1):
         args.logger.info(f'Epoch {epoch}')
-        model.train()  # 设置模型为训练模式
-        avg_loss = []  # 存储每个batch的平均损失
+        model.train()
+        avg_loss = []
 
         with tqdm(total=len(train_dataloader), desc=f'Epoch [{epoch}/{args.num_epoch}]', ncols=100) as pbar:
             for batch in train_dataloader:
-                optimizer.zero_grad()  # 梯度清零
-                losses = 0.0  # 初始化当前batch的总损失
-#                 x, y, t, adj, treat, label, mask, indice = batch
-#                 y = y.permute(0, 2, 1).reshape(y.shape[0] * y.shape[-1], -1)
-#                 x = x.squeeze(-1).permute(0, 2, 1)
-#                 t = t.permute(0, 2, 1)
+                optimizer.zero_grad()
+                losses = 0.0 
                 
                 batch = [_.to(args.device) for _ in batch]
-                x, y, t, adj, treat, mask, indice = batch
-                #print(y.shape)
+                x, y, t, adj, treat, indice = batch
                 y = y.permute(0, 2, 1)
-                #y = y.permute(0, 2, 1).reshape(y.shape[0] * y.shape[-1], -1)
-                #print(x.shape, y.shape, t.shape, adj.shape, treat.shape, mask.shape, indice.shape)
-                y_pre, w, z, t = model(x, t, treat, adj, mask)
-             
-                
-#                 if args.causal:
-#                     label = label.reshape(label.shape[0] * label.shape[1])
+
+                y_pre, w, z, t = model(x, t, treat, adj)
+
                 if args.causal:
                     losses += calculate_loss(args, z, y, y_pre, scaler, w, t, model.get_treat_base())
                 else:
                     losses += calculate_loss(args, z, y, y_pre, scaler)
                 
-                #losses /= len(batch)
-                losses.backward()  # 反向传播
-                optimizer.step()  # 优化器更新
+                losses.backward()
+                optimizer.step()
                 torch.cuda.empty_cache()
-                avg_loss.append(losses.item())  # 存储平均损失
-                pbar.set_postfix({'loss ': f' {np.mean(avg_loss):.4f}'})  # 更新进度条上的损失信息
-                pbar.update(1)  # 更新进度条
-        avg_losses.append(np.mean(avg_loss))  # 存储每个epoch的平均损失
+                avg_loss.append(losses.item())
+                pbar.set_postfix({'loss ': f' {np.mean(avg_loss):.4f}'})
+                pbar.update(1)
+        avg_losses.append(np.mean(avg_loss))
         
         metrics = test(args, model, valid_dataloader, scaler, mode = 'Validate')
         
@@ -68,11 +58,11 @@ def train(args, model, optimizer, scheduler, train_dataloader, valid_dataloader,
             break
         
     args.logger.info('Training process done.')
-    return best_model, avg_losses  # 返回训练后的模型和每个epoch的平均损失
+    return best_model, avg_losses
 
 def test(args, model, test_dataloader, scaler, mode = 'Test'):
     args.logger.info('Start ' + mode)
-    model.eval()  # 设置模型为评估模式
+    model.eval()
     y_preds = []
     y_trues = []
     single_results = {}
@@ -81,19 +71,15 @@ def test(args, model, test_dataloader, scaler, mode = 'Test'):
         single_results[i]['pred'] = []
         single_results[i]['true'] = []
     
-    with torch.no_grad():  # 禁用梯度计算
+    with torch.no_grad():
         for batch in test_dataloader:
             batch = [_.to(args.device) for _ in batch]
-            x, y, t, adj, treat, mask, indice = batch
+            x, y, t, adj, treat, indice = batch
             y = y.permute(0, 2, 1)
-            #y = y.permute(0, 2, 1).reshape(y.shape[0] * y.shape[-1], -1)
 
-            y_pre, w, z, treat = model(x, t, treat, adj, mask)
+            y_pre, w, z, treat = model(x, t, treat, adj)
             
             y_pre = y_pre.unsqueeze(-1).reshape(y.shape)
-            
-            #print(y.shape, y_pre.shape)
-            
             
             for i in range(args.output_window):                
                 y_pred = torch.flatten(scaler.inverse_transform(y_pre[:, :, i].cpu().squeeze())).detach().numpy().tolist()

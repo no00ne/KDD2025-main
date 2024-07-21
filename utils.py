@@ -6,19 +6,18 @@ import zipfile
 import os
 
 def set_seed(seed):
-    """设置所有可能的随机种子以确保可重复性"""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # 如果使用多个GPU
+    torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
 def pack_source(args):
     zip_name = 'source_{}.zip'.format(args.expid)
     file_list = ['dataloader.py', 'model.py', 'losses.py', 'run.py', 'train.py', 'normalization.py']
-    output_dir = '/home/yangxiaojie/KDD2025/model/sources/'
+    output_dir = os.path.join(args.path, '/model/sources/')
     create_zip(zip_name, file_list, output_dir)
     args.logger.info('Packed source code saved!')
 
@@ -46,12 +45,11 @@ def load_dataloader(file_path):
     dataloader = torch.utils.data.DataLoader(dataset, **dataloader_params)
     return dataloader
    
-def get_exp_id(directory='/home/yangxiaojie/KDD2025/model/log/'):
+def get_exp_id(directory='../log/'):
     exp_ids = []
     expid = random.randint(1000, 9999)
     for root, dirs, files in os.walk(directory):
         for file in files:
-            # 获取文件名的最后四个字符
             last_four = file[-8:-4]
             exp_ids.append(int(last_four))
             
@@ -61,11 +59,9 @@ def get_exp_id(directory='/home/yangxiaojie/KDD2025/model/log/'):
     return expid
 
 def create_zip(zip_name, file_list, output_dir):
-    # 确保输出目录存在
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # 创建压缩包的完整路径
     zip_path = os.path.join(output_dir, zip_name)
 
     # 打包文件
@@ -73,4 +69,4 @@ def create_zip(zip_name, file_list, output_dir):
         for file in file_list:
             zipf.write(file, os.path.basename(file))
 
-    print(f'打包完成，压缩包路径: {zip_path}')
+    print(f'Save all source codes to: {zip_path}')

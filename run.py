@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import logging
-from model import CausalFlow
+from model import CausalMob
 from torch.utils.data import Dataset, DataLoader
 from dataloader import CausalDataset, CausalDatasetPreloader
 from train import train, test
@@ -28,11 +28,13 @@ def parse_args():
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--weight_decay', type=float, default=0)
     parser.add_argument('--input_dim', type=int, default=64)
-    parser.add_argument('--treat_dim', type=int, default=4096)
+    parser.add_argument('--treat_dim', type=int, default=10)
     parser.add_argument('--treat_hidden', type=int, default=64)
     parser.add_argument('--reg_num', type=int, default=490)
     parser.add_argument('--tim_num', type=int, default=24)
     parser.add_argument('--device', type=str, default='cuda:0')
+    #the path will changed for anonymous review
+    parser.add_argument('--path', type=str, default='/home/yangxiaojie/KDD/')
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--num_epoch', type=int, default=300)
     parser.add_argument('--input_window', type=int, default=6)
@@ -49,19 +51,17 @@ def parse_args():
     parser.add_argument('--cache', type=bool, default=False)
     parser.add_argument('--save', type=bool, default=False)
     parser.add_argument('--random', type=bool, default=False)
-    parser.add_argument('--seeds', type=int, nargs='+', default=[1111])  # 添加种子列表参数
+    parser.add_argument('--seeds', type=int, nargs='+', default=[1111, 2222, 3333, 4444, 5555])
 
     args = parser.parse_args()
 
-    with open('/home/yangxiaojie/KDD2025/osm_data/poi_distribution.pk', 'rb') as f:
+    with open(os.path.join(args.path, '/osm_data/poi_distribution.pk'), 'rb') as f:
         poi_distribution = pk.load(f)
 
-    # 获取所有唯一的poi_type并进行排序
     keys = sorted(set([poi_type for region in poi_distribution for poi_type in poi_distribution[region]]))
 
     poi_region = np.zeros((len(poi_distribution), len(keys)))
 
-    # 构建一个poi_type到索引的映射
     key_to_index = {key: idx for idx, key in enumerate(keys)}
 
     for i, region in enumerate(poi_distribution.keys()):
@@ -90,7 +90,7 @@ def main():
     expid = get_exp_id()
     
     
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename='/home/yangxiaojie/KDD2025/model/log/Training_{}.log'.format(expid), filemode='w')
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename=args.path + '/model/log/Training_{}.log'.format(expid), filemode='w')
     logger = logging.getLogger()
     args.expid = expid
     logger.info('Argument settings:')
@@ -120,23 +120,8 @@ def run_experiment(args, seed):
         test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=0)
 
         scaler = dataset.scaler
-#         if args.save:
-#             tail = '_in{}_out{}_batch{}_causal{}.pkl'.format(args.input_window, args.output_window, args.batch_size, args.causal)
-#             save_dataloader(train_dataloader, '/home/yangxiaojie/KDD2025/model/cache/train' + tail)
-#             save_dataloader(valid_dataloader, '/home/yangxiaojie/KDD2025/model/cache/valid' + tail)
-#             save_dataloader(test_dataloader, '/home/yangxiaojie/KDD2025/model/cache/test' + tail)
-            
-#             with open('/home/yangxiaojie/KDD2025/model/cache/scaler.pkl' + tail, 'wb') as f:
-#                 pk.dump(scaler, f)
-#     else:
-#         train_dataloader = load_dataloader('./cache/train' + tail)
-#         valid_dataloader = load_dataloader('./cache/valid' + tail)
-#         test_dataloader = load_dataloader('./cache/test' + tail)
-            
-#         with open('./cache/scaler'+tail, 'rb') as f:
-#             scaler = pk.load(f)
-    #raise Exception("Forcefully exiting the program")
-    model = CausalFlow(args).to(args.device)
+
+    model = CausalMob(args).to(args.device)
     args.logger.info("Model Structure: %s", model)
 
     optimizer = torch.optim.Adam(model.parameters(),
@@ -150,9 +135,9 @@ def run_experiment(args, seed):
     metrics = test(args, best_model, test_dataloader, scaler)
     
     if seed is not None:
-        model_path = f'/home/yangxiaojie/KDD2025/model/models/model_{args.expid}_{seed}_{args.causal}.pth'
+        model_path = args.path + f'/model/models/model_{args.expid}_{seed}_{args.causal}.pth'
     else:
-        model_path = f'/home/yangxiaojie/KDD2025/model/models/model_{args.expid}_random_{args.causal}.pth'
+        model_path = args.path + f'/model/models/model_{args.expid}_random_{args.causal}.pth'
     torch.save(best_model, model_path)
     args.logger.info(f"Model saved to {model_path}")
 
