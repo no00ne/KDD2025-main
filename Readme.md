@@ -44,9 +44,13 @@ In our research, we used [Blogwatcher data](https://www.blogwatcher.co.jp/) for 
 However due to our data privacy policy, we are unable to share the code. Below is the format of the data used in this repository:
 
 **D**: Day
+
 **T**: Time interval of a day (hour)
+
 **N**: Node of regions
+
 **F**: Features of human mobility (in our research, it is 1, representing human volume)
+
 Data Files:
 
 1. **flows.npy**: Human mobility data with a shape of D × T × N × F. The time interval is 15 minutes, so use --interval = 4 in run.py.
