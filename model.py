@@ -285,9 +285,9 @@ class PTTrans(nn.Module):
         poi_time = poi_in * weights, self.tim_embedding(t).mean(dim = -2)
         return poi_time
     
-class CausalMob(nn.Module):
+class CausalFlow(nn.Module):
     def __init__(self, args):
-        super(CausalMob, self).__init__()
+        super(CausalFlow, self).__init__()
         self.args = args
         self.reg_num = args.reg_num
         #self.tim_num = args.tim_num

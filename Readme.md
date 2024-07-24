@@ -36,3 +36,15 @@ python run.py --causal True --input_window 24 --output_window 24 --device cuda:0
 --device: Specify the device for computation (e.g., cuda:0 for GPU or cpu for CPU).
 
 --batch_size: Set the batch size for training.
+
+## Data
+
+Due to the data privacy policy, we are unable to share the code. Here is the format of the code used in this repository
+
+D: day, T: time interval of a day(hour), N: node of regions, F: features of human mobility (in our research it is 1, human volumn)
+
+- **flows.npy**: human mobility data, shape D * T * N * F (with a 15-min interval, so --interval = 4 in run.py)
+- **odmetrics_sparse_tensors.pk**: normalized OD data, with shape of D * T * N * N
+- **prev_treats_sum.npy**: public event features in our research area, with shape of D * T * N * scores (10 in our research), this is for history events so all the featrue will be included.
+- **post_treats_sum.npy**: public event features in our research area, with shape of D * T * N * scores (10 in our research), this is for future events, we only consider those predictable public events.
+- **poi_distribution.pk**: normalized poi distriution in each region, with shape of N * POIs (17 categories)
