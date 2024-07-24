@@ -41,7 +41,7 @@ python run.py --causal True --input_window 24 --output_window 24 --device cuda:0
 
 In our research, we used [Blogwatcher data](https://www.blogwatcher.co.jp/) for human mobility and [Kyodo News data](https://english.kyodonews.net/) for news articles, both data time range is from 2023.04.01 to 2024.03.31.
 
-However due to our data privacy policy, we are unable to share the code. Below is the format of the data used in this repository:
+However due to our data privacy policy, we are unable to share these data. Below is the shape of the data used in this repository:
 
 **D**: Day
 
@@ -53,7 +53,7 @@ However due to our data privacy policy, we are unable to share the code. Below i
 
 Data Files:
 
-1. **flows.npy**: Human mobility data with a shape of D × T × N × F. The time interval is 15 minutes, so use --interval = 4 in run.py.
+1. **flows.npy**: Human mobility data with a shape of D × T × N × F. The time interval is 15 minutes here, so we use --interval = 4 in run.py.
 2. **odmetrics_sparse_tensors.pk**: Normalized Origin-Destination (OD) data with a shape of D × T × N × N.
 3. **prev_treats_sum.npy**: Public event features in our research area, with a shape of D × T × N × scores (10 scores in our research). This file includes historical event features.
 4. **post_treats_sum.npy**: Public event features in our research area, with a shape of D × T × N × scores (10 scores in our research). This file considers only predictable future public events.
