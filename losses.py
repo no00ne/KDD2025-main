@@ -21,7 +21,7 @@ def validation_loss(y_preds, y_trues):
     mse = np.mean((y_preds - y_trues) ** 2)
     rmse = np.sqrt(mse)
     mae = np.mean(np.abs(y_preds - y_trues))
-    mape = np.mean(np.abs((y_trues - y_preds) / y_trues)) * 100  # 乘以100表示为百分比
+    mape = np.mean(np.abs((y_trues - y_preds) / y_trues)) * 100
 
     return {
         'MSE': mse,
@@ -34,10 +34,10 @@ def calculate_loss(args, x, y, y_pre, scaler, w = None, treat =None, treat_base 
     if args.causal:         
         y_pre = y_pre.reshape(y.shape)
         w_reshape = w.reshape(y.shape)
-        loss = rwt_regression_loss(w_reshape, y, y_pre, scaler)  # 计算加权回归损失
+        loss = rwt_regression_loss(w_reshape, y, y_pre, scaler)
 
         labels = treat_label(treat, treat_base)
-        mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), labels) # 计算最大均值差异损失
+        mmd = IPM_loss(x, torch.mean(w, dim = -1, keepdim = True), labels)
         return mmd + loss
     else:
         y_pre = y_pre.reshape(y.shape)

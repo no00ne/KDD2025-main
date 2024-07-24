@@ -43,13 +43,13 @@ For other settings, please see source codes in run.py and our paper.
 
 In our research, we used [Blogwatcher data](https://www.blogwatcher.co.jp/) for human mobility and [Kyodo News data](https://english.kyodonews.net/) for news articles, both data time ranges are from 2023.04.01 to 2024.03.31.
 
-However due to our data privacy policy, we are unable to share these data. Below is the shape of the data used in this repository:
+However due to our data privacy policy, we are unable to share these data. Below is the shape of the data used in this repository (number refers to settings in our research):
 
-**D**: Day
+**D**: Day (366)
 
-**T**: Time interval of a day (hour)
+**T**: Time interval of a day (24)
 
-**N**: Node of regions
+**N**: Node of regions (490)
 
 **F**: Features of human mobility (in our research, it is 1, representing human volume)
 

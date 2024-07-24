@@ -26,7 +26,7 @@ def calculate_week_hour(hours_passed, start_date = '2023-04-01'):
     
     target_datetime = start_datetime + timedelta(hours=hours_passed)
     
-    days_since_week_start = target_datetime.weekday()  # 星期一为0，星期日为6
+    days_since_week_start = target_datetime.weekday()
     result_hour = days_since_week_start * 24 + target_datetime.hour
     
     return result_hour
@@ -189,8 +189,8 @@ class CausalDatasetPreloader():
     
     def process_treat(self):
         
-        prev_path = os.path.join(self.args.path, '/samples・説明書/prev_treats_sum.npy')
-        post_path = os.path.join(self.args.path, '/samples・説明書/post_treats_sum.npy')
+        prev_path = os.path.join(self.args.path, '/samples/prev_treats_sum.npy')
+        post_path = os.path.join(self.args.path, '/samples/post_treats_sum.npy')
         
         prev_treats = np.load(prev_path)
         post_treats = np.load(post_path)

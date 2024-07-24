@@ -83,8 +83,6 @@ def parse_args():
 def main():
     args = parse_args()
 
-    # 设置日志记录
-    
     expid = get_exp_id()
     
     
@@ -95,8 +93,7 @@ def main():
     logger.info(args)
     args.logger = logger
     pack_source(args)
-    
-    # 处理随机种子
+
     if not args.random:
         for seed in args.seeds:
             print(f"Running experiment with seed: {seed}")
