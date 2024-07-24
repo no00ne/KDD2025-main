@@ -39,12 +39,18 @@ python run.py --causal True --input_window 24 --output_window 24 --device cuda:0
 
 ## Data
 
-Due to the data privacy policy, we are unable to share the code. Here is the format of the code used in this repository
+In our research, we used [Blogwatcher data](https://www.blogwatcher.co.jp/) for human mobility and [Kyodo News data](https://english.kyodonews.net/) for news articles, both data time range is from 2023.04.01 to 2024.03.31.
 
-D: day, T: time interval of a day(hour), N: node of regions, F: features of human mobility (in our research it is 1, human volumn)
+However due to our data privacy policy, we are unable to share the code. Below is the format of the data used in this repository:
 
-- **flows.npy**: human mobility data, shape D * T * N * F (with a 15-min interval, so --interval = 4 in run.py)
-- **odmetrics_sparse_tensors.pk**: normalized OD data, with shape of D * T * N * N
-- **prev_treats_sum.npy**: public event features in our research area, with shape of D * T * N * scores (10 in our research), this is for history events so all the featrue will be included.
-- **post_treats_sum.npy**: public event features in our research area, with shape of D * T * N * scores (10 in our research), this is for future events, we only consider those predictable public events.
-- **poi_distribution.pk**: normalized poi distriution in each region, with shape of N * POIs (17 categories)
+**D**: Day
+**T**: Time interval of a day (hour)
+**N**: Node of regions
+**F**: Features of human mobility (in our research, it is 1, representing human volume)
+Data Files:
+
+1. **flows.npy**: Human mobility data with a shape of D × T × N × F. The time interval is 15 minutes, so use --interval = 4 in run.py.
+2. **odmetrics_sparse_tensors.pk**: Normalized Origin-Destination (OD) data with a shape of D × T × N × N.
+3. **prev_treats_sum.npy**: Public event features in our research area, with a shape of D × T × N × scores (10 scores in our research). This file includes historical event features.
+4. **post_treats_sum.npy**: Public event features in our research area, with a shape of D × T × N × scores (10 scores in our research). This file considers only predictable future public events.
+5. **poi_distribution.pk**: Normalized Points of Interest (POI) distribution in each region, with a shape of N × POIs (17 categories), we collected POI data from Open Streat Map ([OSM](https://www.openstreetmap.org/)).
