@@ -37,7 +37,7 @@ python run.py --causal True --input_window 24 --output_window 24 --device cuda:0
 
 --batch_size: Set the batch size for training.
 
-For other settings, please see source code and our paper.
+For other settings, please see source codes in run.py and our paper.
 
 ## Data
 
