@@ -37,9 +37,11 @@ python run.py --causal True --input_window 24 --output_window 24 --device cuda:0
 
 --batch_size: Set the batch size for training.
 
+For other settings, please see source code and our paper.
+
 ## Data
 
-In our research, we used [Blogwatcher data](https://www.blogwatcher.co.jp/) for human mobility and [Kyodo News data](https://english.kyodonews.net/) for news articles, both data time range is from 2023.04.01 to 2024.03.31.
+In our research, we used [Blogwatcher data](https://www.blogwatcher.co.jp/) for human mobility and [Kyodo News data](https://english.kyodonews.net/) for news articles, both data time ranges are from 2023.04.01 to 2024.03.31.
 
 However due to our data privacy policy, we are unable to share these data. Below is the shape of the data used in this repository:
 
