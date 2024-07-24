@@ -32,7 +32,7 @@ def parse_args():
     parser.add_argument('--tim_num', type=int, default=24)
     parser.add_argument('--device', type=str, default='cuda:0')
     #the path will changed for anonymous review
-    parser.add_argument('--path', type=str, default='/home/yangxiaojie/KDD/')
+    parser.add_argument('--path', type=str, default='../../../')
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--num_epoch', type=int, default=300)
     parser.add_argument('--input_window', type=int, default=6)
