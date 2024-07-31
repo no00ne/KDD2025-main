@@ -89,7 +89,7 @@ def treat_label(data, base):
     base = base.cpu().detach().numpy()
     similarities = cosine_similarity(data, base)
     similarities = np.array([s[0] for s in similarities])
-    bins = np.arange(-1, 1.05, 0.05)
+    bins = np.arange(-1, 1.1, 0.1)
     labels = np.digitize(similarities, bins, right=True)
     unique_labels = np.unique(labels)
     label_mapping = {label: idx for idx, label in enumerate(unique_labels)}
