@@ -132,9 +132,9 @@ def run_experiment(args, seed):
     metrics = test(args, best_model, test_dataloader, scaler)
     
     if seed is not None:
-        model_path = args.path + f'/model/model_{args.expid}_{seed}_{args.causal}.pth'
+        model_path = args.path + f'/models/model_{args.expid}_{seed}_{args.causal}.pth'
     else:
-        model_path = args.path + f'/model/model_{args.expid}_random_{args.causal}.pth'
+        model_path = args.path + f'/models/model_{args.expid}_random_{args.causal}.pth'
     torch.save(best_model, model_path)
     args.logger.info(f"Model saved to {model_path}")
 
