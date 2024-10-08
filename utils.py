@@ -17,7 +17,7 @@ def set_seed(seed):
 def pack_source(args):
     zip_name = 'source_{}.zip'.format(args.expid)
     file_list = ['dataloader.py', 'model.py', 'losses.py', 'run.py', 'train.py', 'normalization.py']
-    output_dir = os.path.join(args.path, '/model/sources/')
+    output_dir = os.path.join(args.path, '/sources/')
     create_zip(zip_name, file_list, output_dir)
     args.logger.info('Packed source code saved!')
 
