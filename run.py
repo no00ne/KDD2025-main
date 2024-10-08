@@ -73,9 +73,8 @@ def parse_args():
 
     # poi_data = (poi_region - torch.min(poi_region, dim = -1).values.unsqueeze(-1)) / (torch.max(poi_region, dim = -1).values - torch.min(poi_region, dim = -1).values).unsqueeze(-1)
 
-    # poi_data = torch.FloatTensor(poi_data)
-
     poi_data = np.load('./data/poi_data.npy')
+    poi_data = torch.FloatTensor(poi_data)
 
     args.poi_num = 17
     args.poi_data = poi_data
