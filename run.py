@@ -32,7 +32,7 @@ def parse_args():
     parser.add_argument('--tim_num', type=int, default=24)
     parser.add_argument('--device', type=str, default='cuda:0')
     #the path will changed for anonymous review
-    parser.add_argument('--path', type=str, default='../../../')
+    parser.add_argument('--path', type=str, default='./')
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--num_epoch', type=int, default=300)
     parser.add_argument('--input_window', type=int, default=6)
@@ -53,25 +53,27 @@ def parse_args():
 
     args = parser.parse_args()
 
-    with open(os.path.join(args.path, '/osm_data/poi_distribution.pk'), 'rb') as f:
-        poi_distribution = pk.load(f)
+    # with open(os.path.join(args.path, '/osm_data/poi_distribution.pk'), 'rb') as f:
+    #     poi_distribution = pk.load(f)
 
-    keys = sorted(set([poi_type for region in poi_distribution for poi_type in poi_distribution[region]]))
+    # keys = sorted(set([poi_type for region in poi_distribution for poi_type in poi_distribution[region]]))
 
-    poi_region = np.zeros((len(poi_distribution), len(keys)))
+    # poi_region = np.zeros((len(poi_distribution), len(keys)))
 
-    key_to_index = {key: idx for idx, key in enumerate(keys)}
+    # key_to_index = {key: idx for idx, key in enumerate(keys)}
 
-    for i, region in enumerate(poi_distribution.keys()):
-        for poi_type, count in poi_distribution[region].items():
-            j = key_to_index[poi_type]
-            poi_region[i, j] = count
+    # for i, region in enumerate(poi_distribution.keys()):
+    #     for poi_type, count in poi_distribution[region].items():
+    #         j = key_to_index[poi_type]
+    #         poi_region[i, j] = count
 
-    poi_region = torch.FloatTensor(poi_region)
+    # poi_region = torch.FloatTensor(poi_region)
 
-    poi_data = (poi_region - torch.min(poi_region, dim = -1).values.unsqueeze(-1)) / (torch.max(poi_region, dim = -1).values - torch.min(poi_region, dim = -1).values).unsqueeze(-1)
+    # poi_data = (poi_region - torch.min(poi_region, dim = -1).values.unsqueeze(-1)) / (torch.max(poi_region, dim = -1).values - torch.min(poi_region, dim = -1).values).unsqueeze(-1)
 
-    poi_data = torch.FloatTensor(poi_data)
+    # poi_data = torch.FloatTensor(poi_data)
+
+    poi_data = np.load('./data/poi_data.npy')
 
     args.poi_num = len(keys)
     args.poi_data = poi_data
