@@ -88,7 +88,7 @@ def main():
     expid = get_exp_id()
     
     
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename=args.path + '/model/log/Training_{}.log'.format(expid), filemode='w')
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename=args.path + '/log/Training_{}.log'.format(expid), filemode='w')
     logger = logging.getLogger()
     args.expid = expid
     logger.info('Argument settings:')
@@ -132,9 +132,9 @@ def run_experiment(args, seed):
     metrics = test(args, best_model, test_dataloader, scaler)
     
     if seed is not None:
-        model_path = args.path + f'/model/models/model_{args.expid}_{seed}_{args.causal}.pth'
+        model_path = args.path + f'/model/model_{args.expid}_{seed}_{args.causal}.pth'
     else:
-        model_path = args.path + f'/model/models/model_{args.expid}_random_{args.causal}.pth'
+        model_path = args.path + f'/model/model_{args.expid}_random_{args.causal}.pth'
     torch.save(best_model, model_path)
     args.logger.info(f"Model saved to {model_path}")
 
