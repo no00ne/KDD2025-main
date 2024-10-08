@@ -2,6 +2,9 @@
 
 This repository contains the Python source code for **CausalMob: Causal Human Mobility Prediction with LLMs-derived Human Intentions toward Public Events**.
 
+##IMPORTANT UPDATE ❗❗ (2024.10.09)
+We updated sample data in our research with a 15-day length, for data description, please find the bottom of this page.
+
 ## Environments
 
 To run CausalMob, ensure you have the following dependencies installed:
@@ -56,7 +59,7 @@ However due to our data privacy policy, we are unable to share these data. Below
 Data Files:
 
 1. **flows.npy**: Human mobility data with a shape of D × T × N × F. The time interval is 15 minutes here, so we use --interval = 4 in run.py.
-2. **odmetrics_sparse_tensors.pk**: Normalized Origin-Destination (OD) data with a shape of D × T × N × N.
-3. **prev_treats_sum.npy**: Public event features in our research area, with a shape of D × T × N × scores (10 scores in our research). This file includes historical event features.
-4. **post_treats_sum.npy**: Public event features in our research area, with a shape of D × T × N × scores (10 scores in our research). This file considers only predictable future public events.
+2. **odmetrics_sparse_tensors.pk**: Normalized Origin-Destination (OD) data in a list with length D × T and for each item [ N × N sparse tensor].
+3. **prev_treats_sum.npy**: Public event features in our research area, with a shape of [D × T] × N × scores (10 scores in our research). This file includes historical event features.
+4. **post_treats_sum.npy**: Public event features in our research area, with a shape of [D × T] × N × scores (10 scores in our research). This file considers only predictable future public events.
 5. **poi_distribution.pk**: Normalized Points of Interest (POI) distribution in each region, with a shape of N × POIs (17 categories), we collected POI data from Open Streat Map ([OSM](https://www.openstreetmap.org/)).
