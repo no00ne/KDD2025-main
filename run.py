@@ -77,7 +77,7 @@ def parse_args():
 
     poi_data = np.load('./data/poi_data.npy')
 
-    args.poi_num = len(keys)
+    args.poi_num = 17
     args.poi_data = poi_data
     args.pt_dim = 64
     
