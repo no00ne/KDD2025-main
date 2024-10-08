@@ -167,14 +167,14 @@ class CausalDatasetPreloader():
     
     def get_flows(self):
         self.args.logger.info('Reading Regional flows data...')
-        flows = np.load(os.path.join(self.args.path, '/model/data/flows.npy'))
+        flows = np.load(os.path.join(self.args.path, '/data/flows.npy'))
         flows = flows[:, ::self.args.interval, :]
         self.flows = flows.reshape(len(self.adjacency_matrix), self.args.reg_num)
         self.args.logger.info('Regional flows data loaded!')
         self.args.logger.info('Regional flows datashape: ({}, {})'.format(self.flows.shape[0], self.flows.shape[1]))
     
     def get_adjacency(self):
-        with open(os.path.join(self.args.path, '/model/data/odmetrics_sparse_tensors.pk'), 'rb') as f:
+        with open(os.path.join(self.args.path, '/data/odmetrics_sparse_tensors.pk'), 'rb') as f:
             self.adjacency_matrix = pk.load(f)
         self.args.logger.info('Regional adjacency matrix loaded!')
         self.args.logger.info('Regional adjacency matrix length: ({})'.format(len(self.adjacency_matrix)))
@@ -189,8 +189,8 @@ class CausalDatasetPreloader():
     
     def process_treat(self):
         
-        prev_path = os.path.join(self.args.path, '/samples/prev_treats_sum.npy')
-        post_path = os.path.join(self.args.path, '/samples/post_treats_sum.npy')
+        prev_path = os.path.join(self.args.path, '/data/prev_treats_sum.npy')
+        post_path = os.path.join(self.args.path, '/data/post_treats_sum.npy')
         
         prev_treats = np.load(prev_path)
         post_treats = np.load(post_path)
