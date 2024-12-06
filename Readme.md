@@ -2,6 +2,9 @@
 
 This repository contains the Python source code for **CausalMob: Causal Human Mobility Prediction with LLMs-derived Human Intentions toward Public Events**.
 
+## 🎉 Acceptance 🎉 (2024.11.17)
+This research has been accepted by KDD 2025! Now pre-print can be accessed with this [link](https://arxiv.org/abs/2412.02155)
+
 ## ❗❗ IMPORTANT UPDATE ❗❗ (2024.10.09)
 We updated sample data (noise processed) in our research with a 25-day length (D = 25, as larger data can not be uploaded). For data description, please find the bottom of this page.
 
