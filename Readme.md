@@ -66,3 +66,6 @@ Data Files:
 3. **prev_treats_sum.npy**: Public event features in our research area, with a shape of [D × T] × N × scores (10 scores in our research). This file includes historical event features.
 4. **post_treats_sum.npy**: Public event features in our research area, with a shape of [D × T] × N × scores (10 scores in our research). This file considers only predictable future public events.
 5. **poi_distribution.pk**: A dict Points of Interest (POI) distribution in each region amd for each region code 17 types of POI are counted. We collected POI data from Open Streat Map ([OSM](https://www.openstreetmap.org/)). Specifically, considering pravicy issues (Region code aligns other data), we provided processed poi_data (D regions × C categories) in run.py.
+
+## Personal Suggestions
+To be updated
