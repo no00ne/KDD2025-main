@@ -69,3 +69,13 @@ Data Files:
 
 ## Personal Suggestions
 To be updated
+
+## Citing
+```
+@article{yang2024causalmob,
+  title={CausalMob: Causal Human Mobility Prediction with LLMs-derived Human Intentions toward Public Events},
+  author={Yang, Xiaojie and Ge, Hangli and Wang, Jiawei and Fan, Zipei and Jiang, Renhe and Shibasaki, Ryosuke and Koshizuka, Noboru},
+  journal={arXiv preprint arXiv:2412.02155},
+  year={2024}
+}
+```
