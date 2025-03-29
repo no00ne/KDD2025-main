@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument('--treat_hidden', type=int, default=64)
     parser.add_argument('--reg_num', type=int, default=490)
     parser.add_argument('--tim_num', type=int, default=24)
-    parser.add_argument('--device', type=str, default='cpu')
+    parser.add_argument('--device', type=str, default='cuda:0')
     #the path will changed for anonymous review
     parser.add_argument('--path', type=str, default='./')
     parser.add_argument('--batch_size', type=int, default=128)
