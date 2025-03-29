@@ -1,10 +1,5 @@
-import os
 import argparse
-import numpy as np
-import random
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 import logging
 from model import CausalMob
@@ -12,7 +7,6 @@ from torch.utils.data import Dataset, DataLoader
 from dataloader import CausalDataset, CausalDatasetPreloader
 from train import train, test
 from utils import *
-import pickle as pk
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -32,7 +26,7 @@ def parse_args():
     parser.add_argument('--treat_hidden', type=int, default=64)
     parser.add_argument('--reg_num', type=int, default=490)
     parser.add_argument('--tim_num', type=int, default=24)
-    parser.add_argument('--device', type=str, default='cuda:0')
+    parser.add_argument('--device', type=str, default='cpu')
     #the path will changed for anonymous review
     parser.add_argument('--path', type=str, default='./')
     parser.add_argument('--batch_size', type=int, default=128)
@@ -73,7 +67,7 @@ def parse_args():
 
     # poi_data = (poi_region - torch.min(poi_region, dim = -1).values.unsqueeze(-1)) / (torch.max(poi_region, dim = -1).values - torch.min(poi_region, dim = -1).values).unsqueeze(-1)
 
-    poi_data = np.load('./data/poi_data.npy')
+    poi_data = np.load('data/poi_data.npy')
     poi_data = torch.FloatTensor(poi_data)
 
     args.poi_num = 17
@@ -131,7 +125,7 @@ def run_experiment(args, seed):
     best_model, avg_losses = train(args, model, optimizer, scheduler, train_dataloader, valid_dataloader, scaler)
 
     metrics = test(args, best_model, test_dataloader, scaler)
-    
+
     if seed is not None:
         model_path = args.path + f'/models/model_{args.expid}_{seed}_{args.causal}.pth'
     else:
