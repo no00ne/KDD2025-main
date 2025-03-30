@@ -14,9 +14,9 @@ To run CausalMob, ensure you have the following dependencies installed:
 
 - **Python**: 3.8.0 
 - **Pandas**: 2.2.2
-- **NumPy**: 1.23.5
+- **NumPy**: 1.26.4
 - **Torch**: 2.2.0+cu118
-- **scikit-learn**: 1.3.0
+- **scikit-learn**: 1.5.1
 
 You can install these dependencies using pip:
 
