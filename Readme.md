@@ -21,7 +21,7 @@ To run CausalMob, ensure you have the following dependencies installed:
 You can install these dependencies using pip:
 
 ```sh
-pip install pandas==1.5.3 numpy==1.23.5 torch==1.8.2 scikit-learn==1.3.0
+pip install pandas==2.2.2 numpy==1.26.4 torch==2.2.0 scikit-learn==1.5.1
 ```
 
 
