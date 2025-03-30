@@ -107,7 +107,7 @@ def run_experiment(args, seed):
 
         train_dataset, valid_dataset, test_dataset = CausalDataset(args, train_data, mode='train'), CausalDataset(args, valid_data), CausalDataset(args, test_data)
 
-        train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
+        train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0, collate_fn=custom_collate_fn)
         valid_dataloader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False, num_workers=0)
         test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=0)
 

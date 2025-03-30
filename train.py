@@ -18,14 +18,22 @@ def train(args, model, optimizer, scheduler, train_dataloader, valid_dataloader,
         avg_loss = []
 
         with tqdm(total=len(train_dataloader), desc=f'Epoch [{epoch}/{args.num_epoch}]', ncols=100) as pbar:
+            print("type(train_dataloader)", type(train_dataloader))
             for batch in train_dataloader:
                 optimizer.zero_grad()
-                losses = 0.0 
-                
-                batch = [_.to(args.device) for _ in batch]
-                x, y, t, adj, treat, indice = batch
-                y = y.permute(0, 2, 1)
+                losses = 0.0
 
+                x, y, t, adj, treat, indice = batch
+
+                x = x.to(args.device)
+                y = y.to(args.device)
+                t = t.to(args.device)
+                treat = treat.to(args.device)
+                indice = indice.to(args.device)
+
+                adj = [a.to(args.device) for a in adj]
+
+                y = y.permute(0, 2, 1)
                 y_pre, w, z, t = model(x, t, treat, adj)
 
                 if args.causal:

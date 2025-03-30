@@ -69,3 +69,15 @@ def create_zip(zip_name, file_list, output_dir):
             zipf.write(file, os.path.basename(file))
 
     print(f'Save all source codes to: {zip_path}')
+
+
+def custom_collate_fn(batch):
+    xs, ys, ts, adjs, treats, indices = zip(*batch)
+
+    xs = torch.stack(xs)
+    ys = torch.stack(ys)
+    ts = torch.stack(ts)
+    treats = torch.stack(treats)
+    indices = torch.stack(indices)
+
+    return xs, ys, ts, adjs, treats, indices
