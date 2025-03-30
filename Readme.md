@@ -13,9 +13,9 @@ We updated sample data (noise processed) in our research with a 25-day length (D
 To run CausalMob, ensure you have the following dependencies installed:
 
 - **Python**: 3.8.0 
-- **Pandas**: 1.5.3
+- **Pandas**: 2.2.2
 - **NumPy**: 1.23.5
-- **Torch**: 1.8.2
+- **Torch**: 2.2.0+cu118
 - **scikit-learn**: 1.3.0
 
 You can install these dependencies using pip:
