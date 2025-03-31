@@ -89,18 +89,22 @@ class CausalDataset(Dataset):
     
     def __len__(self):
         return len(self.data)
-    
+
     def __getitem__(self, idx):
-        indice, x, y, t, treat, adj = self.data[idx][0], self.data[idx][1], self.data[idx][2], self.data[idx][3], self.data[idx][4], self.data[idx][5]
+        indice, x, y, t, treat, adj = self.data[idx]
         x = x.unsqueeze(2)
+
         if self.args.causal:
             treat = torch.FloatTensor(treat)
         else:
-            treat = torch.zeros((x.shape))
-        
+            treat = torch.zeros_like(x)
+
+        if adj.is_sparse:
+            adj = adj.to_dense()
+
         return x, y, t, adj, treat, indice
 
-        
+
 class CausalDatasetPreloader():
     def __init__(self, args):
         self.args = args
