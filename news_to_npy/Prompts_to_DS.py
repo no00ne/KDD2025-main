@@ -1,9 +1,33 @@
 import http.client
 import json
+import re
+from datetime import datetime
+
 from config import API_KEY
 
+
+def generate_news_object(news_df):
+    """
+    将新闻数据 DataFrame 转换为格式化字符串列表，每条为：
+    title: ...
+    release timestamp: ...
+    content: ...
+
+    parameter：
+        news_df (pd.DataFrame): 包含 'title'、'timestamp' 和 'content' 列的 DataFrame
+
+    return：
+        List[str]: 每条新闻的格式化字符串
+    """
+    news_objects = []
+    for _, row in news_df.iterrows():
+        formatted = f"**title**: {row['title']}\n**release timestamp**: {row['timestamp']}\n**content**: {row['content']}"
+        news_objects.append(formatted)
+    return news_objects
+
+
 def llm_analyze_news(news_object):
-    # TODO: 输入新闻的形式为 title: ..., release timestamp: ..., content: ...,
+    # news_object: **title**: ..., **release timestamp**: ..., **content**: ...,
 
     # DeepSeek API配置
     HOST = "api.deepseek.com"
@@ -54,9 +78,12 @@ def llm_analyze_news(news_object):
         - How: How will shipping schedules be impacted?
         """,
 
+        # 让llm判断这是否是一个预测性质的新闻
         "Is the content in the news more like an unpredictable event, such as an earthquake? Your answer can only be “Yes” or “No”.",
 
-        """Score the news text based on the following aspects (0–100, where a higher number means higher agreement):
+        # 让llm给出事件影响因子
+        """
+        Score the news text based on the following aspects (0–100, where a higher number means higher agreement):
             Q1. To what extent do the events described in the news cause vessels to reroute due to safety concerns?
             Q2. To what extent do the events described in the news cause vessels to stay in port or delay departure?
             Q3. To what extent do the events described in the news increase traffic in certain shipping lanes or ports?
@@ -67,11 +94,31 @@ def llm_analyze_news(news_object):
             Q8. To what extent do the events described in the news involve maritime authorities issuing instructions that influence vessel movements?
             Q9. To what extent do the events described in the news affect port services, such as pilotage, tugs, or terminal operations?
             Q10. To what extent do the events described in the news represent a long-duration impact (more than 24 hours) on shipping?
-            \nExpected response: A list of 10 numbers between 0 and 100."""
+            \nExpected response: A list[] of 10 numbers between 0 and 100.
+        """,
+
+        # 让llm预测可能的影响范围（以经纬度的形式），最终从该类椭圆中提取被包含在内的格子信息
+        """
+        Based on the news content, estimate the potential geographical area affected by the described event. 
+        Return a bounding box that covers the impacted region using the following JSON format:
+
+        {
+          "bounding box": {
+            "north": <latitude>,
+            "south": <latitude>,
+            "east": <longitude>,
+            "west": <longitude>
+          }
+        }
+
+        If the affected area cannot be determined from the news, return null. Provide only the JSON object without additional explanation.
+        """,
     ]
 
     messages = [system_prompt]
     conn = http.client.HTTPSConnection(HOST)
+
+    responses = {}
 
     # 构造对话轮次
     for i, prompt in enumerate(prompts):
@@ -102,6 +149,7 @@ def llm_analyze_news(news_object):
 
             print(f"\n--- Prompt{i+1} Response ---")
             print(assistant_reply.strip())
+            responses[i] = assistant_reply.strip()
 
         except Exception as e:
             print(f"\n--- Prompt{i+1} Response (Error) ---")
@@ -109,6 +157,52 @@ def llm_analyze_news(news_object):
             break
 
     conn.close()
+    return responses
+
+
+def translate_output_to_news_evaluation(llm_output):
+    """
+        将 llm_output 提取并存储为 dict{时间，是否为预测的新闻，评分列表，影响范围}
+
+        parameter：
+            llm根据新闻给出的输出
+
+        return：
+            dict{时间，是否为预测的新闻，评分列表，影响范围}，其中时间和影响范围可能为None
+    """
+    # 提取并清洗时间（字段 1）
+    time_str_raw = llm_output.get(1, "")
+    # 去除```json```标记并加载为 dict
+    time_json_clean = re.sub(r"```json|```", "", time_str_raw).strip()
+    event_time_str = json.loads(time_json_clean).get("event time", None)
+    event_time = None
+    if event_time_str:
+        dt_obj = datetime.strptime(event_time_str, "%Y-%m-%d %H:%M:%S")
+        event_time = int(dt_obj.timestamp())
+
+    # 提取是否为不可预测事件（字段 3）
+    unpredictable_str = llm_output.get(3, "").strip().lower()
+    is_unpredictable = unpredictable_str == "Yes"
+
+    # 提取评分列表（字段 4）
+    scores_str = llm_output.get(4, "")
+    scores = json.loads(scores_str) if isinstance(scores_str, str) else scores_str
+
+    # 提取影响范围（字段 5）
+    bbox_raw = llm_output.get(5, "")
+    bbox_json_clean = re.sub(r"```json|```", "", bbox_raw).strip()
+    bounding_box = json.loads(bbox_json_clean).get("bounding box", None)
+
+    return {
+        "event_time": event_time,
+        "is_unpredictable": is_unpredictable,
+        "scores": scores,
+        "bounding_box": bounding_box
+    }
+
+
+def news_decoder():
+    return None
 
 if __name__ == "__main__":
     news = """
@@ -127,4 +221,7 @@ if __name__ == "__main__":
     Houthis have claimed these attacks on vessels and U.S. carriers and destroyers after USCENTCOM and U.K. armed forces carried out strikes against 13 Houthis terrorist-controlled areas in Yemen on May 30.  
 
     """
-    llm_analyze_news(news)
+
+    response = llm_analyze_news(news)
+    evaluation = translate_output_to_news_evaluation(response)
+    print(evaluation)
