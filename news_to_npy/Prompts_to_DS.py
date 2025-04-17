@@ -2,7 +2,9 @@ import http.client
 import json
 from config import API_KEY
 
-def analyze_news(news_content):
+def llm_analyze_news(news_object):
+    # TODO: 输入新闻的形式为 title: ..., release timestamp: ..., content: ...,
+
     # DeepSeek API配置
     HOST = "api.deepseek.com"
     ENDPOINT = "/chat/completions"
@@ -12,33 +14,59 @@ def analyze_news(news_content):
         'Content-Type': 'application/json'
     }
 
+    # TODO: compare these two
+    precise_content = (
+        "You are a concise and objective AI assistant. "
+        "Your task is to directly respond to the user's instructions based solely on the given news content. "
+        "Do not provide specific analysis, suggestions, especially be careful not to use Markdown format (like **). "
+        "Only respond to what is asked. Keep the output plain, precise and well thought out."
+    )
+    # 原论文的prompt content
+    origin_content = "You are an AI assistant that notifies affected users and makes suggestions to change their mobility based on news text."
+
     # 通用system message
     system_prompt = {
         "role": "system",
-        "content": "You are an AI assistant that notifies affected users and makes suggestions to change their mobility based on news text."
+        "content": precise_content,
+
     }
 
     # Prompts
     prompts = [
-        "First, identify the most influential events in the news content, including scheduled and unpredictable events",
+        """
+        First, identify the most influential maritime events in the news content, 
+        including scheduled operations and unpredictable incidents that may affect shipping schedules.
+        """,
 
-        "Next, estimate the exact time of the most important event mentioned in the news in the following JSON format: “event time”: “yyyy-mm-dd hh:mm:ss”. If the exact time is unknown, use the news release time. Provide only the JSON string without any additional text or explanations.",
+        # 由于csv中的time为发布时间，因此需要从新闻原文中获取实际开始造成影响的时间
+        # 新闻中存在没有显式说明时间的问题，考虑到新闻的时效性，可以使用新闻发布时间替代
+        # prompt中使用 exact time of the most important event mentioned in the news 来避免输出多个时间
+        """
+        Next, estimate the exact time of the most important event mentioned in the news in the following JSON format: “event time”: “yyyy-mm-dd hh:mm:ss”. 
+        If the exact time is unknown, use the news release time. Provide only the JSON string without any additional text or explanations.
+        """,
 
-        "Based on the news text and our chat, evaluate the 3W1H related to human mobility.\n- Where: Where should people move if necessary?\n- Who: What kind of people will be affected?\n- When: When did the event happen?\n- How: How should people move if necessary",
+        """
+        Based on the news text and our chat, evaluate the key factors related to shipping ETA.\n
+        - Where: Which shipping routes or ports are affected?\n
+        - What: What type of vessels will be affected?\n
+        - When: When did/will the event happen?\n
+        - How: How will shipping schedules be impacted?
+        """,
 
         "Is the content in the news more like an unpredictable event, such as an earthquake? Your answer can only be “Yes” or “No”.",
 
         """Score the news text based on the following aspects (0–100, where a higher number means higher agreement):
-            Q1. To what extent do the events described in the news make people leave the area because they are dangerous?
-            Q2. To what extent do the events described in the news make people stay in the area because it is better not to move?
-            Q3. To what extent do the events described in the news make people visit the area because they are interesting events?
-            Q4. To what extent do the events described in the news make people keep their daily routine as these events are not important to daily life?
-            Q5. To what extent do the events described in the news lead to interruption of economic activities, such as business closures or work stoppages?
-            Q6. To what extent do the events described in the news affect transportation conditions, such as traffic congestion or road closures?
-            Q7. To what extent do the events described in the news impact public health and safety, leading to decisions to leave or avoid certain areas?
-            Q8. To what extent do the events described in the news involve government or official instructions that influence people’s movements?
-            Q9. To what extent do the events described in the news affect the availability of public services, such as school closures or interruptions in medical services?
-            Q10. To what extent do the events described in the news last a long time (like one day)?
+            Q1. To what extent do the events described in the news cause vessels to reroute due to safety concerns?
+            Q2. To what extent do the events described in the news cause vessels to stay in port or delay departure?
+            Q3. To what extent do the events described in the news increase traffic in certain shipping lanes or ports?
+            Q4. To what extent do the events described in the news have minimal impact on normal shipping schedules?
+            Q5. To what extent do the events described in the news affect cargo operations, such as loading/unloading delays?
+            Q6. To what extent do the events described in the news impact navigational conditions, such as channel restrictions or closures?
+            Q7. To what extent do the events described in the news create safety hazards that might cause vessels to slow down or proceed with caution?
+            Q8. To what extent do the events described in the news involve maritime authorities issuing instructions that influence vessel movements?
+            Q9. To what extent do the events described in the news affect port services, such as pilotage, tugs, or terminal operations?
+            Q10. To what extent do the events described in the news represent a long-duration impact (more than 24 hours) on shipping?
             \nExpected response: A list of 10 numbers between 0 and 100."""
     ]
 
@@ -49,7 +77,7 @@ def analyze_news(news_content):
     for i, prompt in enumerate(prompts):
         user_msg = {
             "role": "user",
-            "content": f"{prompt}\n\nThe news is as follows:\n{news_content}"
+            "content": f"{prompt}\n\nThe news is as follows:\n{news_object}"
         }
         messages.append(user_msg)
 
@@ -83,5 +111,20 @@ def analyze_news(news_content):
     conn.close()
 
 if __name__ == "__main__":
-    news = "A 6.1-magnitude earthquake has struck Japan's Osaka region, killing at least three people and injuring dozens more.The quake struck at 7:58 a.m. The epicentre was located at 34.8 degrees north latitude and 135.6 degrees east longitude at a depth of 10 kilometres."
-    analyze_news(news)
+    news = """
+    !Houthi claim attack on vessel Abliani and other vessels.
+
+    Reuters media reported that Houthis claimed to have attacked a U.S. aircraft carrier, a U.S. destroyer, and three vessels. Houthis spokesperson stated on Saturday, June 01, that they have targeted a U.S.aircraft carrier, Eisenhower, a U.S.destroyer and three vessels, namely ABLIANI, MAINA, and AL ORAIQ, sailing in the Red Sea and the Indian Ocean. 
+
+    The spokesperson stated that they targeted the U.S. aircraft Carrier Eisenhower at the north of the Red Sea. The U.S. aircraft carrier Eisenhower was attacked by several missiles and drones. Subsequently, the Houthi spokesperson claimed to attack a U.S. destroyer and crude oil tanker, ABLIANI, sailing in the Red Sea. ABLIANI is a 10,9999 dwt crude oil tanker sailing under the flag of Malta. On June 01, the vessel departed from JAZAN ECONOMIC CITY Port, Saudi Arabia and is scheduled to arrive at SUEZ CANAL, Egypt on June 04.
+
+    Following this, the spokesperson of Houthi also claimed to attack twice on the vessel MAINA. The bulk carrier MAINA was targeted in the Red Sea and then in the Arabian Sea. MAINA is a bulk carrier registered in Malta. The bulk carrier departed from Port UST-LUNGA, Russia on May 07 en route to Port KRISHNAPATNAM, India.  He further added that another vessel, AL ORAIQ, was also targeted in the Indian Ocean. AL ORAIQ is an LNG Carrier with a capacity of 2,05,994 cubic meters LNG. The Marshall Island flagged vessel departed from RAS LAFFAN, Qatar on May 27, destined for Port CHIOGGIA, Italy. 
+
+    On June 02, The U.S. Central Command (USCENTCOM) announced in its press release that on June 01, USCENTCOM forces destroyed one Houthi uncrewed aerial system(UAS) in the southern Red Sea. The USCENTCOM forces also identified two other UAS that crashed into the Red Sea. The U.S., coalition, or other commercial ships reported no casualties.
+
+    Moreover, the USCENTCOM forces have also destroyed two Houthi anti-ship ballistic missiles (ASBM) in the southern Red Sea. The ASBM was launched in the direction of USS Gravely but was destroyed by USCENTCOM.   
+
+    Houthis have claimed these attacks on vessels and U.S. carriers and destroyers after USCENTCOM and U.K. armed forces carried out strikes against 13 Houthis terrorist-controlled areas in Yemen on May 30.  
+
+    """
+    llm_analyze_news(news)
