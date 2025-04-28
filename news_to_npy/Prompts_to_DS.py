@@ -168,7 +168,7 @@ def translate_output_to_news_evaluation(llm_output):
             llm根据新闻给出的输出
 
         return：
-            dict{时间，是否为预测的新闻，评分列表，影响范围}，其中时间和影响范围可能为None
+            dict{时间(timestamp)，是否为预测的新闻(bool)，评分列表([])，影响范围({})}，其中时间和影响范围可能为None
     """
     # 提取并清洗时间（字段 1）
     time_str_raw = llm_output.get(1, "")
@@ -201,8 +201,50 @@ def translate_output_to_news_evaluation(llm_output):
     }
 
 
-def news_decoder():
-    return None
+def news_classification(evaluations: []):
+    """
+        根据评估结果列表中的元素 dict{时间，是否为预测的新闻，评分列表，影响范围}，进行进一步的解码，使得能顺利输入模型
+        首先根据 dict 中是否存在 None ，如果是，则抛弃。
+        接着根据 is_unpredictable ,如果是，则将其归入 prev，如果不是，则将其归入 post。归入的同时将 is_unpredictable 删去。
+
+        parameter：
+            一个列表，列表内是llm根据新闻给出的输出（以字典的形式）
+
+        return：
+            1. 可预测新闻组成的列表dict{时间，评分列表，影响范围}
+            2. 已经发生的新闻组成的列表dict{时间，评分列表，影响范围}
+    """
+    # 过滤掉包含 None 的评估结果
+    print(evaluations)
+    filtered_evaluations = [content for content in evaluations if all(value is not None for value in content.values())]
+
+    # 将评估结果分为可预测和已发生的新闻
+    prev_news = []
+    post_news = []
+
+    for content in filtered_evaluations:
+        if content["is_unpredictable"]:
+            prev_news.append({k: v for k, v in content.items() if k != "is_unpredictable"})
+        else:
+            post_news.append({k: v for k, v in content.items() if k != "is_unpredictable"})
+
+    return prev_news, post_news
+
+
+def news_decoder(classified_news: []):
+    """
+        对于包含时间，影响范围，评分列表的新闻，进行进一步的解码，使得能顺利输入模型
+        论文中的思路：
+            1. 首先将时间划分为n个片段，时间段的长度为 $(?)
+            2. 接着将影响范围分解为m个范围
+            3. 最后将数据转化为 n*m*10 的矩阵，n为时间段的个数，m为影响范围的个数，10为评分列表的长度
+
+        parameter：
+            一个列表classified_news：已经分类并包含必要信息的llm评估结果
+
+        return：
+            一个npy文件，包含解析后的结果
+    """
 
 if __name__ == "__main__":
     news = """
@@ -223,5 +265,7 @@ if __name__ == "__main__":
     """
 
     response = llm_analyze_news(news)
+    with open("my_dict.json", "w", encoding="utf-8") as file:
+        json.dump(response, file, ensure_ascii=False, indent=4)
     evaluation = translate_output_to_news_evaluation(response)
     print(evaluation)

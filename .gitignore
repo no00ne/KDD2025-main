@@ -1,3 +1,5 @@
 ./news_to_npy/config.py
 ./news_to_npy/test.ipynb
 ./news_to_npy/Method.md
+./log/
+./sources/
