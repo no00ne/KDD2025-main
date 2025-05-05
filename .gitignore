@@ -1,5 +1,7 @@
-./news_to_npy/config.py
 ./news_to_npy/test.ipynb
 ./news_to_npy/Method.md
 ./log/
 ./sources/
+./ship_trajectories/
+./ship_trajectories_orig/
+./news/

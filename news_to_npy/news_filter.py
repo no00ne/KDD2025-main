@@ -5,7 +5,7 @@ from datetime import datetime
 # 读取CSV文件
 try:
     # 尝试读取CSV文件
-    df = pd.read_csv('news.csv')
+    df = pd.read_csv('../news/news.csv')
     print(f"成功读取文件，总共有 {len(df)} 条记录")
 except Exception as e:
     print(f"读取文件时出错: {e}")
@@ -58,9 +58,12 @@ filtered_df = df.loc[mask]
 
 print(f"筛选出 {len(filtered_df)} 条在2021年1月1日至2021年6月30日之间的记录")
 
+# 筛选步骤4: 按照timestamp进行降序排序
+filtered_df = filtered_df.sort_values(by='timestamp', ascending=True)
+
 # 保存结果到新的CSV文件
 try:
-    filtered_df.to_csv('selected_news.csv', index=False)
+    filtered_df.to_csv('../news/selected_news.csv', index=False)
     print(f"成功将结果保存到selected_news.csv文件中")
 except Exception as e:
     print(f"保存文件时出错: {e}")

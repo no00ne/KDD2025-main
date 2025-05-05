@@ -1,9 +1,12 @@
 import http.client
-import json
 import re
 from datetime import datetime
-
 from config import API_KEY
+import pandas as pd
+import json
+import time
+import traceback
+from tqdm import tqdm
 
 
 def generate_news_object(news_df):
@@ -84,22 +87,19 @@ def llm_analyze_news(news_object):
         # 让llm给出事件影响因子
         """
         Score the news text based on the following aspects (0–100, where a higher number means higher agreement):
-            Q1. To what extent do the events described in the news cause vessels to reroute due to safety concerns?
+            Q1. To what extent do the events described in the news cause vessels to reroute?
             Q2. To what extent do the events described in the news cause vessels to stay in port or delay departure?
             Q3. To what extent do the events described in the news increase traffic in certain shipping lanes or ports?
-            Q4. To what extent do the events described in the news have minimal impact on normal shipping schedules?
-            Q5. To what extent do the events described in the news affect cargo operations, such as loading/unloading delays?
-            Q6. To what extent do the events described in the news impact navigational conditions, such as channel restrictions or closures?
-            Q7. To what extent do the events described in the news create safety hazards that might cause vessels to slow down or proceed with caution?
-            Q8. To what extent do the events described in the news involve maritime authorities issuing instructions that influence vessel movements?
-            Q9. To what extent do the events described in the news affect port services, such as pilotage, tugs, or terminal operations?
-            Q10. To what extent do the events described in the news represent a long-duration impact (more than 24 hours) on shipping?
-            \nExpected response: A list[] of 10 numbers between 0 and 100.
+            Q4. To what extent do the events described in the news impact navigational conditions, such as channel restrictions or closures?
+            Q5. To what extent do the events described in the news create safety hazards that might cause vessels to slow down or proceed with caution?
+            Q6. To what extent do the events described in the news represent a long-duration impact (more than 24 hours) on shipping?
+            \nExpected response: A list[] of  numbers between 0 and 100.
         """,
 
         # 让llm预测可能的影响范围（以经纬度的形式），最终从该类椭圆中提取被包含在内的格子信息
         """
-        Based on the news content, estimate the potential geographical area affected by the described event. 
+        Based on the news content and the score list you just gave, estimate the potential geographical area affected by the described event. The more precise the better.
+        If the range of influence is too large, please consider carefully whether the range is truly reliable.
         Return a bounding box that covers the impacted region using the following JSON format:
 
         {
@@ -215,7 +215,6 @@ def news_classification(evaluations: []):
             2. 已经发生的新闻组成的列表dict{时间，评分列表，影响范围}
     """
     # 过滤掉包含 None 的评估结果
-    print(evaluations)
     filtered_evaluations = [content for content in evaluations if all(value is not None for value in content.values())]
 
     # 将评估结果分为可预测和已发生的新闻
@@ -231,41 +230,121 @@ def news_classification(evaluations: []):
     return prev_news, post_news
 
 
-def news_decoder(classified_news: []):
+def process_selected_news(input_file="..\\news\\selected_news.csv",
+                          response_file="responses.json",
+                          evaluation_file="evaluations.json",
+                          max_retries=3):
     """
-        对于包含时间，影响范围，评分列表的新闻，进行进一步的解码，使得能顺利输入模型
-        论文中的思路：
-            1. 首先将时间划分为n个片段，时间段的长度为 $(?)
-            2. 接着将影响范围分解为m个范围
-            3. 最后将数据转化为 n*m*10 的矩阵，n为时间段的个数，m为影响范围的个数，10为评分列表的长度
+    从CSV文件中读取新闻内容，使用LLM分析并评估每条新闻
 
-        parameter：
-            一个列表classified_news：已经分类并包含必要信息的llm评估结果
-
-        return：
-            一个npy文件，包含解析后的结果
+    参数:
+        input_file (str): 输入CSV文件路径
+        response_file (str): LLM响应保存文件
+        evaluation_file (str): 评估结果保存文件
+        max_retries (int): 最大重试次数
     """
+    try:
+        # 读取CSV文件
+        df = pd.read_csv(input_file)
+        print(f"成功读取{input_file}，共有{len(df)}条新闻")
 
-if __name__ == "__main__":
+        # 准备存储结果的列表
+        all_responses = []
+        all_evaluations = []
+
+        # 逐行处理新闻
+        for index, row in tqdm(df.iterrows(), total=len(df), desc="处理新闻"):
+            news_id = row.get('id', index)  # 如果没有id列，使用索引作为id
+            content = row.get('content', '').strip()
+
+            if not content or pd.isna(content):
+                print(f"警告: 第{index}行新闻内容为空，跳过")
+                continue
+
+            timestamp = row.get('timestamp', '')
+            content = "News Release Date: " + str(timestamp) + "\n" + content
+
+            print(f"\n处理第{index}行新闻 (ID: {news_id})")
+
+            # 尝试处理，最多重试max_retries次
+            for attempt in range(max_retries):
+                try:
+                    # 分析新闻
+                    response = llm_analyze_news(content)
+
+                    # 转换为评估结果
+                    evaluation = translate_output_to_news_evaluation(response)
+
+                    # 添加新闻ID
+                    response['news_id'] = news_id
+                    evaluation['news_id'] = news_id
+
+                    # 保存到列表
+                    all_responses.append(response)
+                    all_evaluations.append(evaluation)
+
+                    # 实时保存结果到文件
+                    with open(response_file, "w", encoding="utf-8") as file:
+                        # 由于每次都是整个[]的写入，因此可以使用 'w'
+                        json.dump(all_responses, file, ensure_ascii=False, indent=4)
+
+                    with open(evaluation_file, "w", encoding="utf-8") as file:
+                        json.dump(all_evaluations, file, ensure_ascii=False, indent=4)
+
+                    print(f"成功处理第{index}行新闻")
+                    break  # 处理成功，跳出重试循环
+
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        print(f"处理第{index}行新闻时出错（尝试 {attempt + 1}/{max_retries}）: {str(e)}")
+                        print("正在重试...")
+                        time.sleep(2)  # 等待短暂时间再重试
+                    else:
+                        print(f"处理第{index}行新闻失败（尝试 {max_retries}/{max_retries}）:")
+                        print(traceback.format_exc())
+                        print("跳过此条新闻")
+
+        print(f"\n处理完成! 成功处理 {len(all_responses)} 条新闻")
+        return all_responses, all_evaluations
+
+    except Exception as e:
+        print(f"处理过程中出现错误: {str(e)}")
+        print(traceback.format_exc())
+        return [], []
+
+
+def example_precess():
+
+    # 预测类新闻
     news = """
-    !Houthi claim attack on vessel Abliani and other vessels.
+    Possible Escalation Expected as Houthis Claim Multiple Maritime Attacks in Red Sea and Indian Ocean
 
-    Reuters media reported that Houthis claimed to have attacked a U.S. aircraft carrier, a U.S. destroyer, and three vessels. Houthis spokesperson stated on Saturday, June 01, that they have targeted a U.S.aircraft carrier, Eisenhower, a U.S.destroyer and three vessels, namely ABLIANI, MAINA, and AL ORAIQ, sailing in the Red Sea and the Indian Ocean. 
+June 2, 2024 – Red Sea / Indian Ocean
 
-    The spokesperson stated that they targeted the U.S. aircraft Carrier Eisenhower at the north of the Red Sea. The U.S. aircraft carrier Eisenhower was attacked by several missiles and drones. Subsequently, the Houthi spokesperson claimed to attack a U.S. destroyer and crude oil tanker, ABLIANI, sailing in the Red Sea. ABLIANI is a 10,9999 dwt crude oil tanker sailing under the flag of Malta. On June 01, the vessel departed from JAZAN ECONOMIC CITY Port, Saudi Arabia and is scheduled to arrive at SUEZ CANAL, Egypt on June 04.
+Tensions in the Red Sea and surrounding waters may escalate following a series of attacks claimed by Yemen’s Houthi forces. On June 1, a Houthi spokesperson announced that the group had launched coordinated strikes against multiple U.S. naval assets and commercial vessels operating in the region.
 
-    Following this, the spokesperson of Houthi also claimed to attack twice on the vessel MAINA. The bulk carrier MAINA was targeted in the Red Sea and then in the Arabian Sea. MAINA is a bulk carrier registered in Malta. The bulk carrier departed from Port UST-LUNGA, Russia on May 07 en route to Port KRISHNAPATNAM, India.  He further added that another vessel, AL ORAIQ, was also targeted in the Indian Ocean. AL ORAIQ is an LNG Carrier with a capacity of 2,05,994 cubic meters LNG. The Marshall Island flagged vessel departed from RAS LAFFAN, Qatar on May 27, destined for Port CHIOGGIA, Italy. 
+According to Houthi statements, targets included the U.S. aircraft carrier Eisenhower, a U.S. Navy destroyer, and three commercial vessels: ABLIANI, MAINA, and AL ORAIQ. The attacks reportedly spanned across the Red Sea, Arabian Sea, and the Indian Ocean.
 
-    On June 02, The U.S. Central Command (USCENTCOM) announced in its press release that on June 01, USCENTCOM forces destroyed one Houthi uncrewed aerial system(UAS) in the southern Red Sea. The USCENTCOM forces also identified two other UAS that crashed into the Red Sea. The U.S., coalition, or other commercial ships reported no casualties.
+The Houthis claimed to have launched multiple missiles and drones targeting the Eisenhower north of the Red Sea. They also stated that the destroyer and the crude oil tanker ABLIANI, sailing under the Maltese flag, were targeted in the same region. The ABLIANI departed from Jazan Economic City Port in Saudi Arabia on June 1, en route to the Suez Canal, Egypt, with an estimated arrival date of June 4.
 
-    Moreover, the USCENTCOM forces have also destroyed two Houthi anti-ship ballistic missiles (ASBM) in the southern Red Sea. The ASBM was launched in the direction of USS Gravely but was destroyed by USCENTCOM.   
+Further, the bulk carrier MAINA, also Malta-registered, was allegedly attacked twice — first in the Red Sea and subsequently in the Arabian Sea. The vessel had departed from Ust-Luga, Russia, on May 7 and was bound for Krishnapatnam, India. Another vessel, the LNG carrier AL ORAIQ, was reportedly attacked in the Indian Ocean. The Marshall Islands-flagged tanker departed Ras Laffan, Qatar, on May 27, heading to Chioggia, Italy.
 
-    Houthis have claimed these attacks on vessels and U.S. carriers and destroyers after USCENTCOM and U.K. armed forces carried out strikes against 13 Houthis terrorist-controlled areas in Yemen on May 30.  
+On June 2, the U.S. Central Command (USCENTCOM) confirmed that on June 1, its forces destroyed one Houthi uncrewed aerial system (UAS) in the southern Red Sea. Additionally, two other UAS crashed into the sea, and no damage or casualties were reported by U.S., coalition, or commercial ships.
 
+USCENTCOM also reported the interception and destruction of two Houthi-launched anti-ship ballistic missiles (ASBM) targeting the USS Gravely. These defensive actions come just two days after joint U.S. and U.K. forces conducted airstrikes on 13 Houthi-controlled targets in Yemen on May 30.
     """
 
     response = llm_analyze_news(news)
-    with open("my_dict.json", "w", encoding="utf-8") as file:
+    with open("response.json", "w", encoding="utf-8") as file:
         json.dump(response, file, ensure_ascii=False, indent=4)
     evaluation = translate_output_to_news_evaluation(response)
     print(evaluation)
+    with open("evaluation.json", "w", encoding="utf-8") as file:
+        json.dump(evaluation, file, ensure_ascii=False, indent=4)
+
+if __name__ == '__main__':
+
+    # 处理CSV文件中的所有新闻
+    process_selected_news()
+
+    # example_precess()
