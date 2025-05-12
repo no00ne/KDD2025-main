@@ -381,13 +381,14 @@ def process_selected_news(input_file,
 if __name__ == '__main__':
     base_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(base_dir, "news", "selected_news.csv")
+    output_path = os.path.join(base_dir, "result-v2")
 
     try:
         # 处理CSV文件中的所有新闻, ds
         process_selected_news(
             input_file=input_file,
-            response_file="responses-v3.json",
-            evaluation_file="evaluations-v3.json",
+            response_file=output_path + "responses-v3.json",
+            evaluation_file=output_path + "evaluations-v3.json",
             source="ds",  # "ds" or "aly"
             max_retries=3,
             num_workers=25  # 对于网络IO密集型任务，可使用更多线程
@@ -396,8 +397,8 @@ if __name__ == '__main__':
         # 处理CSV文件中的所有新闻, aly
         process_selected_news(
             input_file=input_file,
-            response_file="result/responses-R1.json",
-            evaluation_file="result/evaluations-R1.json",
+            response_file=output_path + "responses-R1.json",
+            evaluation_file=output_path + "evaluations-R1.json",
             source="aly",
             max_retries=3,
             num_workers=25

@@ -3,6 +3,7 @@ news_to_npy/Method.md
 news_to_npy/config/
 news_to_npy/news/
 news_to_npy/result/
+news_to_npy/result-v1/
 log/
 sources/
 ship_trajectories/
