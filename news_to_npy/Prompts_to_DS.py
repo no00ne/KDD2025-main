@@ -396,8 +396,8 @@ if __name__ == '__main__':
         # 处理CSV文件中的所有新闻, aly
         process_selected_news(
             input_file=input_file,
-            response_file="responses-R1.json",
-            evaluation_file="evaluations-R1.json",
+            response_file="result/responses-R1.json",
+            evaluation_file="result/evaluations-R1.json",
             source="aly",
             max_retries=3,
             num_workers=25
@@ -434,11 +434,11 @@ USCENTCOM also reported the interception and destruction of two Houthi-launched 
     start_time = time.time()
 
     response = aly_analyze_news(news)
-    with open("response.json", "w", encoding="utf-8") as file:
+    with open("result/response.json", "w", encoding="utf-8") as file:
         json.dump(response, file, ensure_ascii=False, indent=4)
     evaluation = translate_output_to_news_evaluation(response)
     print(evaluation)
-    with open("evaluation.json", "w", encoding="utf-8") as file:
+    with open("result/evaluation.json", "w", encoding="utf-8") as file:
         json.dump(evaluation, file, ensure_ascii=False, indent=4)
 
     # 运行时间
