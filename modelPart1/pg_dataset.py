@@ -118,12 +118,15 @@ class PgETADataset(Dataset):
             return self.__getitem__((idx + 1) % len(self))
 
         # 随机采样 A_idx
-        A_idx  = random.randrange(self.step, len(nodes)-1, self.step)
+        A_idx  = random.randrange(self.step, len(nodes)-2, self.step)
         A_node = nodes[A_idx]
+        # TODO:
+        B_idx = random.randrange(A_idx + 1, len(nodes))
+        B_node = nodes[B_idx]
 
         # label = 下一节点速度 (knots→km/h)
-        next_speed_kn = nodes[A_idx+1].get("speed") or 0.0
-        label = torch.tensor(next_speed_kn * 1.852, dtype=torch.float)
+        speed_kn = B_node.get("speed") or 0.0
+        label = torch.tensor(speed_kn * 1.852, dtype=torch.float)
 
         # 1. A_seq & A_stat
         A_seq  = build_seq_tensor(nodes[:A_idx+1], A_node)
@@ -156,21 +159,21 @@ class PgETADataset(Dataset):
 
         # 3. 邻船 K 条
 
-        near_rows = self._nearby(A_node['latitude'],
-                                     A_node['longitude'],
+        near_rows = self._nearby(B_node['latitude'],
+                                     B_node['longitude'],
                                      main['mmsi'])
         near_seqs, near_stats, Δxy, Δcs = [], [], [], []
         for r in near_rows:
             vid2 = r['vid']
-            near_seqs.append(build_seq_tensor(self._nodes(vid2), A_node))
+            near_seqs.append(build_seq_tensor(self._nodes(vid2), B_node))
             near_stats.append(build_stat_tensor(self._main(vid2)))
             dx, dy = latlon_to_local(
-                A_node['latitude'], A_node['longitude'],
-                A_node.get('course') or 0,
+                B_node['latitude'], B_node['longitude'],
+                B_node.get('course') or 0,
                 r['latitude'], r['longitude']
             )
             dtheta = math.radians(
-                abs((r['course'] or 0) - (A_node.get('course') or 0))
+                abs((r['course'] or 0) - (B_node.get('course') or 0))
             )
             Δxy.append([dx, dy])
             Δcs.append([math.cos(dtheta), math.sin(dtheta)])
@@ -181,11 +184,11 @@ class PgETADataset(Dataset):
             Δcs.append([1.0, 0.0])
 
         # 4. B_feat6 —— sin/cos(hour, weekday, course)
-        sin_h, cos_h = encode_time(A_node['timestamp'])
+        sin_h, cos_h = encode_time(B_node['timestamp'])
 
         # —— 兼容 str / datetime 的 weekday 处理 ——
         from datetime import datetime as _dt
-        _ts = A_node.get('timestamp')
+        _ts = B_node.get('timestamp')
         if isinstance(_ts, str):
             dt = _dt.fromisoformat(_ts)
         elif isinstance(_ts, _dt):
@@ -198,7 +201,7 @@ class PgETADataset(Dataset):
         wd = dt.weekday()
         sin_w, cos_w = math.sin(2 * math.pi * wd / 7), math.cos(2 * math.pi * wd / 7)
 
-        cor = A_node.get('course') or 0.0
+        cor = B_node.get('course') or 0.0
         sin_c, cos_c = math.sin(math.radians(cor)), math.cos(math.radians(cor))
 
         B6 = torch.tensor([sin_h, cos_h, sin_w, cos_w, sin_c, cos_c],

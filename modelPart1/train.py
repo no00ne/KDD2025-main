@@ -159,7 +159,7 @@ if __name__ == "__main__":
     pa.add_argument('--h_ship',    type=int,   default=5)
     pa.add_argument('--radius',    type=float, default=20.0)
     pa.add_argument('--step',      type=int,   default=10)
-    pa.add_argument('--workers',   type=int,   default=24)
+    pa.add_argument('--workers',   type=int,   default=12)
     pa.add_argument('--amp',       action='store_true')
     pa.add_argument('--clip',      type=float, default=1.0,
                     help="梯度裁剪阈值，0 = 关闭")
