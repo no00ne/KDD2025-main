@@ -1,7 +1,8 @@
-./news_to_npy/test.ipynb
-./news_to_npy/Method.md
-./log/
-./sources/
-./ship_trajectories/
-./ship_trajectories_orig/
-./news/
+news_to_npy/test.ipynb
+news_to_npy/Method.md
+news_to_npy/config/
+news_to_npy/news/
+log/
+sources/
+ship_trajectories/
+ship_trajectories_orig/

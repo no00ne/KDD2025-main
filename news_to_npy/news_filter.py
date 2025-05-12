@@ -5,7 +5,7 @@ from datetime import datetime
 # 读取CSV文件
 try:
     # 尝试读取CSV文件
-    df = pd.read_csv('../news/news.csv')
+    df = pd.read_csv('news/news.csv')
     print(f"成功读取文件，总共有 {len(df)} 条记录")
 except Exception as e:
     print(f"读取文件时出错: {e}")

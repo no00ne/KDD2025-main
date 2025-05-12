@@ -1,0 +1,20 @@
+[
+    {
+        "0": "The most influential maritime events are:  \n1. Pipeline burst causing explosion and fire near Nueva Refineria Dos Bocas (Dec 31).  \n2. Oil leakage from the damaged pipeline.  \n3. Containment efforts via booms and offshore tugs, potentially affecting local maritime operations.  \n4. Disruption to the pipeline connecting the refinery with offshore oil platforms, impacting supply chain logistics.",
+        "1": "{\"event time\": \"2021-01-01 02:38:20\"}",
+        "2": "Where: Shipping routes near Nueva Refineria Dos Bocas (Gulf of Mexico) and offshore oil platforms connected to the refinery.  \nWhat: Oil tankers, offshore supply vessels, and vessels servicing the refinery or platforms.  \nWhen: Event occurred on Dec 31, 2021.  \nHow: Potential delays due to pipeline disruption, containment operations (booms, tugs), and possible oil spill-related navigation restrictions.",
+        "3": "Yes",
+        "4": "[30, 60, 10, 70, 80, 80]",
+        "5": "{\"bounding box\": {\"north\": 18.55, \"south\": 18.35, \"east\": -93.05, \"west\": -93.25}}",
+        "news_id": 2460
+    },
+    {
+        "0": "Most influential maritime events from the news content:  \n\n1. **January 2018**: Highest monthly accidents (149) and ships lost (13).  \n2. **August 2019**: Over 120 casualties, the highest single-month casualty count.  \n3. **December 2019**: 51 crew kidnapped, the highest kidnapping incident.  \n4. **November 2017**: 17 ships lost, the highest monthly loss.  \n5. **January 2017**: 141 accidents, second-highest monthly accident count.  \n6. **March 2017**: 52 casualties, significant casualty event.  \n7. **July 2017**: 14 ships lost, second-highest monthly loss.  \n8. **December 2016**: 15 ships lost and 80 casualties, major end-year incident.  \n9. **March 2018**: 126 accidents, third-highest monthly accident count.  \n10. **August 2017**: 106 accidents and 49 casualties, high combined impact.  \n\nUnpredictable incidents: Kidnappings (e.g., Dec 2019: 51 crew; Nov 2020: 33 crew) and casualty spikes (e.g., Aug 2019: 120+ casualties) disrupt operations. Scheduled operations are not explicitly detailed in the data.",
+        "1": "{\"event time\": \"2021-01-01 04:08:51\"}",
+        "2": "Where: Major shipping routes with high accident rates (e.g., areas with frequent kidnappings, casualties, or ship losses such as August 2019's 120+ casualties and December 2019's 51 crew kidnappings). Specific ports are not named, but regions with recurring incidents (e.g., piracy-prone zones) are likely affected.  \nWhat: Merchant marine vessels (primary focus of MB Daily), particularly cargo ships, tankers, and vessels in high-risk areas.  \nWhen: Events occurred in months with peak accidents (e.g., January 2018: 149 accidents; August 2019: 120+ casualties; December 2019: 51 crew kidnapped). No future dates provided; historical data spans 2016–2020.  \nHow: Increased delays due to accident investigations, route diversions (e.g., avoiding piracy zones), port congestion from salvage operations, and crew shortages (kidnappings/casualties). Severe incidents (ship losses, mass casualties) may cause prolonged disruptions.",
+        "3": "No",
+        "4": "[70, 60, 20, 50, 70, 70]",
+        "5": "```json\n{\n  \"bounding box\": {\n    \"north\": 10.0,\n    \"south\": 0.0,\n    \"east\": 10.0,\n    \"west\": 0.0\n  }\n}\n```",
+        "news_id": 2459
+    }
+]

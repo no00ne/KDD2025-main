@@ -1,12 +1,20 @@
 import http.client
 import re
 from datetime import datetime
-from config import API_KEY
+from config import config as config
 import pandas as pd
 import json
 import time
 import traceback
+
 from tqdm import tqdm
+
+import os
+from openai import OpenAI
+
+import threading
+from functools import partial
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 def generate_news_object(news_df):
@@ -29,27 +37,76 @@ def generate_news_object(news_df):
     return news_objects
 
 
+def aly_analyze_news(news_object):
+
+    # OpenAI兼容API配置
+    client = OpenAI(
+        api_key=config.ALY_API_KEY,
+        base_url=config.ALY_base_url
+    )
+    model = "deepseek-r1"
+
+    precise_content = config.precise_content
+
+    # 通用system message
+    system_prompt = {
+        "role": "system",
+        "content": precise_content,
+    }
+
+    # Prompts
+    prompts = config.prompts
+
+    messages = [system_prompt]
+    responses = {}
+
+    # 构造对话轮次
+    for i, prompt in enumerate(prompts):
+        user_msg = {
+            "role": "user",
+            "content": f"{prompt}\n\nThe news is as follows:\n{news_object}"
+        }
+        messages.append(user_msg)
+
+        try:
+            completion = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=1,
+                max_tokens=4096
+            )
+
+            assistant_reply = completion.choices[0].message.content
+            messages.append({
+                "role": "assistant",
+                "content": assistant_reply
+            })
+
+            print(f"\n--- Prompt{i + 1} Response ---")
+            print(assistant_reply.strip())
+            responses[i] = assistant_reply.strip()
+
+        except Exception as e:
+            print(f"\n--- Prompt{i + 1} Response (Error) ---")
+            print(e)
+            break
+
+    return responses
+
 def llm_analyze_news(news_object):
-    # news_object: **title**: ..., **release timestamp**: ..., **content**: ...,
 
     # DeepSeek API配置
     HOST = "api.deepseek.com"
     ENDPOINT = "/chat/completions"
+    API_KEY = config.DS_KEY
+    model = "deepseek-chat" # deepseek-v3
 
     headers = {
         'Authorization': f'Bearer {API_KEY}',
         'Content-Type': 'application/json'
     }
 
-    # TODO: compare these two
-    precise_content = (
-        "You are a concise and objective AI assistant. "
-        "Your task is to directly respond to the user's instructions based solely on the given news content. "
-        "Do not provide specific analysis, suggestions, especially be careful not to use Markdown format (like **). "
-        "Only respond to what is asked. Keep the output plain, precise and well thought out."
-    )
-    # 原论文的prompt content
-    origin_content = "You are an AI assistant that notifies affected users and makes suggestions to change their mobility based on news text."
+    precise_content = config.precise_content
 
     # 通用system message
     system_prompt = {
@@ -59,61 +116,7 @@ def llm_analyze_news(news_object):
     }
 
     # Prompts
-    prompts = [
-        """
-        First, identify the most influential maritime events in the news content, 
-        including scheduled operations and unpredictable incidents that may affect shipping schedules.
-        """,
-
-        # 由于csv中的time为发布时间，因此需要从新闻原文中获取实际开始造成影响的时间
-        # 新闻中存在没有显式说明时间的问题，考虑到新闻的时效性，可以使用新闻发布时间替代
-        # prompt中使用 exact time of the most important event mentioned in the news 来避免输出多个时间
-        """
-        Next, estimate the exact time of the most important event mentioned in the news in the following JSON format: “event time”: “yyyy-mm-dd hh:mm:ss”. 
-        If the exact time is unknown, use the news release time. Provide only the JSON string without any additional text or explanations.
-        """,
-
-        """
-        Based on the news text and our chat, evaluate the key factors related to shipping ETA.\n
-        - Where: Which shipping routes or ports are affected?\n
-        - What: What type of vessels will be affected?\n
-        - When: When did/will the event happen?\n
-        - How: How will shipping schedules be impacted?
-        """,
-
-        # 让llm判断这是否是一个预测性质的新闻
-        "Is the content in the news more like an unpredictable event, such as an earthquake? Your answer can only be “Yes” or “No”.",
-
-        # 让llm给出事件影响因子
-        """
-        Score the news text based on the following aspects (0–100, where a higher number means higher agreement):
-            Q1. To what extent do the events described in the news cause vessels to reroute?
-            Q2. To what extent do the events described in the news cause vessels to stay in port or delay departure?
-            Q3. To what extent do the events described in the news increase traffic in certain shipping lanes or ports?
-            Q4. To what extent do the events described in the news impact navigational conditions, such as channel restrictions or closures?
-            Q5. To what extent do the events described in the news create safety hazards that might cause vessels to slow down or proceed with caution?
-            Q6. To what extent do the events described in the news represent a long-duration impact (more than 24 hours) on shipping?
-            \nExpected response: A list[] of  numbers between 0 and 100.
-        """,
-
-        # 让llm预测可能的影响范围（以经纬度的形式），最终从该类椭圆中提取被包含在内的格子信息
-        """
-        Based on the news content and the score list you just gave, estimate the potential geographical area affected by the described event. The more precise the better.
-        If the range of influence is too large, please consider carefully whether the range is truly reliable.
-        Return a bounding box that covers the impacted region using the following JSON format:
-
-        {
-          "bounding box": {
-            "north": <latitude>,
-            "south": <latitude>,
-            "east": <longitude>,
-            "west": <longitude>
-          }
-        }
-
-        If the affected area cannot be determined from the news, return null. Provide only the JSON object without additional explanation.
-        """,
-    ]
+    prompts = config.prompts
 
     messages = [system_prompt]
     conn = http.client.HTTPSConnection(HOST)
@@ -130,9 +133,9 @@ def llm_analyze_news(news_object):
 
         payload = json.dumps({
             "messages": messages,
-            "model": "deepseek-chat",
+            "model": model,
             "temperature": 1,
-            "max_tokens": 2048
+            "max_tokens": 4096
         })
 
         conn.request("POST", ENDPOINT, payload, headers)
@@ -147,8 +150,8 @@ def llm_analyze_news(news_object):
                 "content": assistant_reply
             })
 
-            print(f"\n--- Prompt{i+1} Response ---")
-            print(assistant_reply.strip())
+            # print(f"\n--- Prompt{i+1} Response ---")
+            # print(assistant_reply.strip())
             responses[i] = assistant_reply.strip()
 
         except Exception as e:
@@ -201,7 +204,7 @@ def translate_output_to_news_evaluation(llm_output):
     }
 
 
-def news_classification(evaluations: []):
+def news_classification(evaluations):
     """
         根据评估结果列表中的元素 dict{时间，是否为预测的新闻，评分列表，影响范围}，进行进一步的解码，使得能顺利输入模型
         首先根据 dict 中是否存在 None ，如果是，则抛弃。
@@ -230,79 +233,141 @@ def news_classification(evaluations: []):
     return prev_news, post_news
 
 
-def process_selected_news(input_file="..\\news\\selected_news.csv",
+def process_single_news(row_data, source="ds", max_retries=3):
+    """
+    处理单条新闻的函数，适用于并行处理
+
+    参数:
+        row_data: 包含(index, row)的元组，row是pandas的Series对象
+        source: 使用的LLM服务源，"ds"或"aly"
+        max_retries: 最大重试次数
+
+    返回:
+        (response, evaluation, success_flag, news_id): 包含LLM响应、评估结果、处理成功标志和新闻ID
+    """
+    index, row = row_data
+    news_id = row.get('id', index)  # 如果没有id列，使用索引作为id
+    content = row.get('content', '').strip()
+
+    if not content or pd.isna(content):
+        print(f"警告: 第{index}行新闻内容为空，跳过")
+        return None, None, False, news_id
+
+    timestamp = row.get('timestamp', '')
+    content = "News Release Date: " + str(timestamp) + "\n" + content
+
+    # 使用线程安全的方式打印
+    print_lock = threading.Lock()
+    with print_lock:
+        print(f"\n处理第{index}行新闻 (ID: {news_id})")
+
+    # 尝试处理，最多重试max_retries次
+    for attempt in range(max_retries):
+        try:
+            # 分析新闻
+            if source == "ds":
+                response = llm_analyze_news(content)
+            elif source == "aly":
+                response = aly_analyze_news(content)
+
+            # 转换为评估结果
+            evaluation = translate_output_to_news_evaluation(response)
+
+            # 添加新闻ID
+            response['news_id'] = news_id
+            evaluation['news_id'] = news_id
+
+            with print_lock:
+                print(f"成功处理第{index}行新闻")
+
+            return response, evaluation, True, news_id
+
+        except Exception as e:
+            if attempt < max_retries - 1:
+                with print_lock:
+                    print(f"处理第{index}行新闻时出错（尝试 {attempt + 1}/{max_retries}）: {str(e)}")
+                    print("正在重试...")
+                time.sleep(2)  # 等待短暂时间再重试
+            else:
+                with print_lock:
+                    print(f"处理第{index}行新闻失败（尝试 {max_retries}/{max_retries}）:")
+                    print(traceback.format_exc())
+                    print("跳过此条新闻")
+
+    return None, None, False, news_id
+
+
+def save_results(all_responses, all_evaluations, response_file, evaluation_file):
+    """使用线程锁保存结果到文件"""
+    file_lock = threading.Lock()
+    with file_lock:
+        with open(response_file, "w", encoding="utf-8") as file:
+            json.dump(all_responses, file, ensure_ascii=False, indent=4)
+
+        with open(evaluation_file, "w", encoding="utf-8") as file:
+            json.dump(all_evaluations, file, ensure_ascii=False, indent=4)
+
+
+def process_selected_news(input_file,
                           response_file="responses.json",
                           evaluation_file="evaluations.json",
-                          max_retries=3):
+                          source="ds",
+                          max_retries=3,
+                          num_workers=None):
     """
-    从CSV文件中读取新闻内容，使用LLM分析并评估每条新闻
+    从CSV文件中读取新闻内容，使用线程池并行方式调用LLM分析每条新闻
 
     参数:
         input_file (str): 输入CSV文件路径
         response_file (str): LLM响应保存文件
         evaluation_file (str): 评估结果保存文件
+        source (str): 使用的LLM服务源，"ds"或"aly"
         max_retries (int): 最大重试次数
+        num_workers (int): 线程数，如果为None则使用较大的默认值
     """
+    if num_workers is None:
+        # 由于是IO绑定任务，线程数可以设置得较高
+        num_workers = min(32, os.cpu_count() * 4)  # 限制最大线程数为32
+
     try:
         # 读取CSV文件
         df = pd.read_csv(input_file)
         print(f"成功读取{input_file}，共有{len(df)}条新闻")
+        print(f"将使用 {num_workers} 个线程并行处理")
 
-        # 准备存储结果的列表
+        # 准备存储结果的列表 (线程共享内存，可以直接使用普通列表)
         all_responses = []
         all_evaluations = []
+        results_lock = threading.Lock()
 
-        # 逐行处理新闻
-        for index, row in tqdm(df.iterrows(), total=len(df), desc="处理新闻"):
-            news_id = row.get('id', index)  # 如果没有id列，使用索引作为id
-            content = row.get('content', '').strip()
+        # 创建一个partial函数，固定source和max_retries参数
+        process_func = partial(process_single_news, source=source, max_retries=max_retries)
 
-            if not content or pd.isna(content):
-                print(f"警告: 第{index}行新闻内容为空，跳过")
-                continue
+        # 使用线程池
+        with ThreadPoolExecutor(max_workers=num_workers) as executor:
+            # 提交所有任务
+            futures = {executor.submit(process_func, (i, row)): i for i, row in df.iterrows()}
 
-            timestamp = row.get('timestamp', '')
-            content = "News Release Date: " + str(timestamp) + "\n" + content
+            # 使用tqdm显示进度
+            with tqdm(total=len(futures), desc="处理新闻") as pbar:
+                # 处理完成的任务
+                saved_counter = 0
+                for future in as_completed(futures):
+                    response, evaluation, success, news_id = future.result()
+                    if success:
+                        with results_lock:
+                            all_responses.append(response)
+                            all_evaluations.append(evaluation)
+                            saved_counter += 1
 
-            print(f"\n处理第{index}行新闻 (ID: {news_id})")
+                            # 每处理10条新闻保存一次结果，避免中断损失
+                            if saved_counter % 10 == 0:
+                                save_results(all_responses, all_evaluations,
+                                             response_file, evaluation_file)
+                    pbar.update(1)
 
-            # 尝试处理，最多重试max_retries次
-            for attempt in range(max_retries):
-                try:
-                    # 分析新闻
-                    response = llm_analyze_news(content)
-
-                    # 转换为评估结果
-                    evaluation = translate_output_to_news_evaluation(response)
-
-                    # 添加新闻ID
-                    response['news_id'] = news_id
-                    evaluation['news_id'] = news_id
-
-                    # 保存到列表
-                    all_responses.append(response)
-                    all_evaluations.append(evaluation)
-
-                    # 实时保存结果到文件
-                    with open(response_file, "w", encoding="utf-8") as file:
-                        # 由于每次都是整个[]的写入，因此可以使用 'w'
-                        json.dump(all_responses, file, ensure_ascii=False, indent=4)
-
-                    with open(evaluation_file, "w", encoding="utf-8") as file:
-                        json.dump(all_evaluations, file, ensure_ascii=False, indent=4)
-
-                    print(f"成功处理第{index}行新闻")
-                    break  # 处理成功，跳出重试循环
-
-                except Exception as e:
-                    if attempt < max_retries - 1:
-                        print(f"处理第{index}行新闻时出错（尝试 {attempt + 1}/{max_retries}）: {str(e)}")
-                        print("正在重试...")
-                        time.sleep(2)  # 等待短暂时间再重试
-                    else:
-                        print(f"处理第{index}行新闻失败（尝试 {max_retries}/{max_retries}）:")
-                        print(traceback.format_exc())
-                        print("跳过此条新闻")
+        # 最终保存结果
+        save_results(all_responses, all_evaluations, response_file, evaluation_file)
 
         print(f"\n处理完成! 成功处理 {len(all_responses)} 条新闻")
         return all_responses, all_evaluations
@@ -311,6 +376,37 @@ def process_selected_news(input_file="..\\news\\selected_news.csv",
         print(f"处理过程中出现错误: {str(e)}")
         print(traceback.format_exc())
         return [], []
+
+
+if __name__ == '__main__':
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    input_file = os.path.join(base_dir, "news", "selected_news.csv")
+
+    try:
+        # 处理CSV文件中的所有新闻, ds
+        process_selected_news(
+            input_file=input_file,
+            response_file="responses-v3.json",
+            evaluation_file="evaluations-v3.json",
+            source="ds",  # "ds" or "aly"
+            max_retries=3,
+            num_workers=25  # 对于网络IO密集型任务，可使用更多线程
+        )
+
+        # 处理CSV文件中的所有新闻, aly
+        process_selected_news(
+            input_file=input_file,
+            response_file="responses-R1.json",
+            evaluation_file="evaluations-R1.json",
+            source="aly",
+            max_retries=3,
+            num_workers=25
+        )
+    except KeyboardInterrupt:
+        print("检测到用户中断，正在优雅地停止处理...")
+        # 线程池会处理中断
+
+    # example_precess()
 
 
 def example_precess():
@@ -334,7 +430,10 @@ On June 2, the U.S. Central Command (USCENTCOM) confirmed that on June 1, its fo
 USCENTCOM also reported the interception and destruction of two Houthi-launched anti-ship ballistic missiles (ASBM) targeting the USS Gravely. These defensive actions come just two days after joint U.S. and U.K. forces conducted airstrikes on 13 Houthi-controlled targets in Yemen on May 30.
     """
 
-    response = llm_analyze_news(news)
+    # 记录运行时间
+    start_time = time.time()
+
+    response = aly_analyze_news(news)
     with open("response.json", "w", encoding="utf-8") as file:
         json.dump(response, file, ensure_ascii=False, indent=4)
     evaluation = translate_output_to_news_evaluation(response)
@@ -342,9 +441,6 @@ USCENTCOM also reported the interception and destruction of two Houthi-launched 
     with open("evaluation.json", "w", encoding="utf-8") as file:
         json.dump(evaluation, file, ensure_ascii=False, indent=4)
 
-if __name__ == '__main__':
-
-    # 处理CSV文件中的所有新闻
-    process_selected_news()
-
-    # example_precess()
+    # 运行时间
+    end_time = time.time()
+    print(f"运行时间: {end_time - start_time:.2f}秒")
