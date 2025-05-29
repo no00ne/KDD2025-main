@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-train.py
+train_speed.py
 ───────────────────────────────────────────────────────────────────
 • 使用 PgETADataset + SpeedPredictor 训练 ETA 预测
 • 支持:
@@ -27,7 +27,7 @@ from torch.amp import autocast, GradScaler
 from tqdm import tqdm
 from utils import init_logger, Timer, _AMP_NEW
 from utils                import set_seed, save_ckpt, load_ckpt, evaluate
-from pg_dataset           import PgETADataset, collate_fn
+from pg_dataset_speed           import PgETADataset, collate_fn_speed
 from eta_speed_model      import GroupEmbedder, SpeedPredictor
 
 def main(cfg):
@@ -51,11 +51,11 @@ def main(cfg):
                              cfg.radius, cfg.step)
     with Timer("DataLoader build"):
         train_dl = DataLoader(train_ds, batch_size=cfg.batch,
-                          shuffle=True,  num_workers=cfg.workers,
-                          collate_fn=collate_fn, pin_memory=True)
-        val_dl   = DataLoader(val_ds,   batch_size=cfg.batch,
-                          shuffle=False, num_workers=cfg.workers,
-                          collate_fn=collate_fn, pin_memory=True)
+                              shuffle=True, num_workers=cfg.workers,
+                              collate_fn=collate_fn_speed, pin_memory=True)
+        val_dl   = DataLoader(val_ds, batch_size=cfg.batch,
+                              shuffle=False, num_workers=cfg.workers,
+                              collate_fn=collate_fn_speed, pin_memory=True)
 
     # Model & Opt
     emb = GroupEmbedder().to(device)
@@ -150,14 +150,14 @@ if __name__ == "__main__":
     pa = argparse.ArgumentParser()
     pa.add_argument('--epochs',    type=int,   default=20)
     pa.add_argument('--batch',     type=int,   default=32)
-    pa.add_argument('--max_batches', type=int, default=0,
+    pa.add_argument('--max_batches', type=int, default=256,
                     help="每个 epoch 最多处理多少个 batch；0 = 不限制")
     pa.add_argument('--lr',        type=float, default=2e-4)
     pa.add_argument('--wd',        type=float, default=0.0)
     pa.add_argument('--scheduler', choices=['cosine','plateau'], default='plateau')
-    pa.add_argument('--k_near',    type=int,   default=10)
-    pa.add_argument('--h_ship',    type=int,   default=5)
-    pa.add_argument('--radius',    type=float, default=20.0)
+    pa.add_argument('--k_near',    type=int,   default=32)
+    pa.add_argument('--h_ship',    type=int,   default=10)
+    pa.add_argument('--radius',    type=float, default=50.0)
     pa.add_argument('--step',      type=int,   default=10)
     pa.add_argument('--workers',   type=int,   default=12)
     pa.add_argument('--amp',       action='store_true')

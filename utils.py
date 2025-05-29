@@ -16,7 +16,7 @@ def set_seed(seed):
 
 def pack_source(args):
     zip_name = 'source_{}.zip'.format(args.expid)
-    file_list = ['dataloader.py', 'model.py', 'losses.py', 'run.py', 'train.py', 'normalization.py']
+    file_list = ['dataloader.py', 'model.py', 'losses.py', 'run.py', 'train_speed.py', 'normalization.py']
     output_dir = os.path.join(args.path, 'sources/')
     create_zip(zip_name, file_list, output_dir)
     args.logger.info('Packed source code saved!')
@@ -25,7 +25,7 @@ def save_dataloader(dataloader, file_path):
     dataset = dataloader.dataset
     batch_size = dataloader.batch_size
     num_workers = dataloader.num_workers
-    collate_fn = dataloader.collate_fn
+    collate_fn = dataloader.collate_fn_speed
     shuffle = isinstance(dataloader.sampler, torch.utils.data.sampler.RandomSampler)
     
     dataloader_params = {
