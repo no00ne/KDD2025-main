@@ -6,7 +6,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from threading import local
-from typing import Union
+from typing import Union, Optional
 
 # pg_dataset_eta.py 顶部（import 区域）
 import psycopg2
@@ -34,30 +34,43 @@ _PG_POOL = pool.SimpleConnectionPool(
 class PgETADataset(Dataset):
     _thread_local = local()
 
-    def __init__(self, train: bool = True,
-                 k_near=K_NEAR, h_ship=H_SHIP,
-                 radius_km=RADIUS_KM, step=STEP_NODE):
+    def __init__(self,
+                 train: bool = True,
+                 k_near: int = K_NEAR,
+                 h_ship: int = H_SHIP,
+                 radius_km: float = RADIUS_KM,
+                 step: int = STEP_NODE,
+                 *,
+                 m_news: int = 0,          # ⇽ 新增：新闻向量维度
+                 use_news: bool = False    # ⇽ 新增：是否启用新闻特征
+                 ):
+        # ---------------- 基本超参 ----------------
         self.K, self.H, self.R, self.step = k_near, h_ship, radius_km, step
-        self.train_flag = train
-        self._num_mu = defaultdict(float)  # 运行时在线更新均值 μ
-        self._num_sig = defaultdict(lambda: 1.)  # 以及标准差 σ ，可先置 1 避免除 0
-        self._seen = 0  # 已统计样本数（做流式均值/方差）
+        self.train_flag  = train
+        self.m_news      = int(m_news)
+        self.use_news    = bool(use_news and m_news > 0)   # 双条件判定
 
-        # 离散列映射表
+        # ---------------- 流式均值 / 方差 ----------------
+        self._num_mu  = defaultdict(float)
+        self._num_sig = defaultdict(lambda: 1.0)
+        self._seen    = 0
+
+        # ---------------- 离散列映射 ----------------
         self.type2id = {"<UNK>": 0}
         self.flag2id = {"<UNK>": 0}
         self.port2id = {"<UNK>": 0}
-        # Short connection to get all voyage IDs
+
+        # ---------------- 载入 voyage id 列表 ----------------
         with psycopg2.connect(DB_DSN, cursor_factory=ext.RealDictCursor) as tmp:
             with tmp.cursor() as cur:
                 flag = 'TRUE' if train else 'FALSE'
                 cur.execute(f"SELECT id FROM voyage_main WHERE train={flag};")
-                self.voy_ids = [r['id'] for r in cur.fetchall()]
+                self.voy_ids = [row['id'] for row in cur.fetchall()]
         random.shuffle(self.voy_ids)
 
-        # Real connection (one per worker for multiprocessing)
-        self.conn = None
-        self.cur = None
+        # ---------------- 延迟连接（每个 DataLoader worker 各一条） ----------------
+        self.conn: Optional[psycopg2.extensions.connection] = None
+        self.cur: Optional[psycopg2.extensions.cursor] = None
 
     def _update_running_stats(self, key: str, val: float):
         # Welford online scheme
@@ -441,6 +454,8 @@ class PgETADataset(Dataset):
             "delta_cs":         delta_cs,           # (n_B, K, 2)  cos θ,sin θ
             "B6_list":          B6_list,            # (n_B, 6)     sin/cos 周期
             "label":            label               # ()  剩余小时数 (float)
-        }    # (n_B,m,(news))
+        }    # news_raw:(n_B,m,(news))
+            # news_proj:(n_B,m,(news))
+
 
 
