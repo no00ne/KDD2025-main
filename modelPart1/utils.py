@@ -9,6 +9,7 @@ from typing import List, Dict
 
 import numpy as np
 import torch
+import pandas as pd
 from scipy.integrate import quad
 from scipy.interpolate import CubicHermiteSpline
 
@@ -522,3 +523,57 @@ def compute_hermite_distances(lats, lons, courses, R=6371000.0):
         integrand = lambda u: np.hypot(sx(u, 1), sy(u, 1))
         dists[i], _ = quad(integrand, a, b)
     return dists
+
+
+# -------- 第一次加载脚本时运行 --------
+UN_PRED_NEWS = pd.read_csv("news_data/unpredictable.csv")
+PRED_NEWS    = pd.read_csv("news_data/predictable.csv")
+
+# 预先提取常用列为 numpy 数组，加快后续广播计算
+up_arr  = UN_PRED_NEWS[["event_time","north","south","east","west",
+                        *[f"score_{i}" for i in range(6)]]].values
+pr_arr  = PRED_NEWS [ ["event_time","north","south","east","west",
+                        *[f"score_{i}" for i in range(6)]]].values
+
+up_times = up_arr[:,0]
+pr_times = pr_arr[:,0]
+# ------------------------------------
+
+def get_node_related_news_tensor(nodes, max_num=10, projection=False):
+    """
+    Faster implementation for large-scale scenarios.
+    Returns: torch.Tensor shape (idx_of_nodes, idex_of_news, 7)
+    """
+    num_nodes = len(nodes)
+    out = torch.zeros((num_nodes, max_num, 7), dtype=torch.float32)
+
+    for idx, node in enumerate(nodes):
+        t, lat, lon = node["timestamp"], node["latitude"], node["longitude"]
+
+        # --- 时间切片（利用 searchsorted） ---
+        up_cut = np.searchsorted(up_times, t, side="right")
+        pr_cut = np.searchsorted(pr_times, t, side="left")
+        up_slice = up_arr[:up_cut]
+        pr_slice = pr_arr[pr_cut:]
+
+        # --- 合并后做空间过滤（numpy 广播） ---
+        slice_arr = np.vstack((up_slice, pr_slice))
+        if slice_arr.size == 0:
+            continue
+
+        lat_ok = (slice_arr[:,1] >= lat) & (slice_arr[:,2] <= lat)
+        lon_ok = (slice_arr[:,3] >= lon) & (slice_arr[:,4] <= lon)
+        hits   = slice_arr[lat_ok & lon_ok]
+
+        if hits.shape[0]:
+            # 取前 max_num 条
+            hits = hits[:max_num]
+
+            # event_time 或差值
+            times = hits[:,0:1] - t if projection else hits[:,0:1]
+            scores = hits[:,5:11]     # 6 列 score
+            tensor = torch.tensor(np.hstack((times, scores)), dtype=torch.float32)
+
+            out[idx, :tensor.shape[0], :] = tensor
+
+    return out

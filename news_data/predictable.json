@@ -1,0 +1,3278 @@
+[
+    {
+        "event_time": 1610598105,
+        "scores": [
+            70,
+            90,
+            10,
+            0,
+            50,
+            100
+        ],
+        "bounding_box": {
+            "north": 35.6,
+            "south": 30.6,
+            "east": 140.1,
+            "west": 117.0
+        },
+        "news_id": 9764
+    },
+    {
+        "event_time": 1611004881,
+        "scores": [
+            10,
+            40,
+            30,
+            70,
+            85,
+            75
+        ],
+        "bounding_box": {
+            "north": 75.0,
+            "south": 65.0,
+            "east": 180.0,
+            "west": 72.0
+        },
+        "news_id": 9762
+    },
+    {
+        "event_time": 1611035363,
+        "scores": [
+            20,
+            10,
+            70,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 37.815,
+            "south": 37.775,
+            "east": -122.265,
+            "west": -122.295
+        },
+        "news_id": 9761
+    },
+    {
+        "event_time": 1611470227,
+        "scores": [
+            60,
+            50,
+            30,
+            20,
+            70,
+            80
+        ],
+        "bounding_box": {
+            "north": 1.1,
+            "south": 0.0,
+            "east": 109.3,
+            "west": 104.0
+        },
+        "news_id": 9759
+    },
+    {
+        "event_time": 1611532875,
+        "scores": [
+            30,
+            15,
+            50,
+            20,
+            35,
+            70
+        ],
+        "bounding_box": {
+            "north": 26.0,
+            "south": 25.5,
+            "east": -97.0,
+            "west": -97.8
+        },
+        "news_id": 9758
+    },
+    {
+        "event_time": 1610035200,
+        "scores": [
+            20,
+            40,
+            70,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 53.63,
+            "south": 51.92,
+            "east": 4.48,
+            "west": -0.25
+        },
+        "news_id": 9757
+    },
+    {
+        "event_time": 1611722504,
+        "scores": [
+            60,
+            70,
+            85,
+            10,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 9.5,
+            "south": 8.9,
+            "east": -79.0,
+            "west": -80.0
+        },
+        "news_id": 9756
+    },
+    {
+        "event_time": 1611975600,
+        "scores": [
+            60,
+            75,
+            40,
+            80,
+            85,
+            70
+        ],
+        "bounding_box": {
+            "north": 22.2,
+            "south": 22.15,
+            "east": 113.56,
+            "west": 113.53
+        },
+        "news_id": 9754
+    },
+    {
+        "event_time": 1612135584,
+        "scores": [
+            0,
+            20,
+            30,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 57.71,
+            "south": 57.69,
+            "east": 11.96,
+            "west": 11.94
+        },
+        "news_id": 9753
+    },
+    {
+        "event_time": 1612151432,
+        "scores": [
+            20,
+            0,
+            70,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 43.4,
+            "south": 31.19,
+            "east": 35.78,
+            "west": -6.0
+        },
+        "news_id": 9752
+    },
+    {
+        "event_time": 1613714682,
+        "scores": [
+            50,
+            40,
+            10,
+            70,
+            80,
+            100
+        ],
+        "bounding_box": {
+            "north": -20.4,
+            "south": -20.45,
+            "east": 57.8,
+            "west": 57.75
+        },
+        "news_id": 9747
+    },
+    {
+        "event_time": 1613718591,
+        "scores": [
+            40,
+            70,
+            10,
+            30,
+            65,
+            85
+        ],
+        "bounding_box": {
+            "north": 36.76,
+            "south": 31.5,
+            "east": 22.56,
+            "west": 18.0
+        },
+        "news_id": 9746
+    },
+    {
+        "event_time": 1608220800,
+        "scores": [
+            50,
+            80,
+            0,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 40.5,
+            "south": 35.0,
+            "east": 34.6,
+            "west": 8.1
+        },
+        "news_id": 9744
+    },
+    {
+        "event_time": 1599891742,
+        "scores": [
+            10,
+            75,
+            20,
+            0,
+            0,
+            95
+        ],
+        "bounding_box": {
+            "north": 36.73,
+            "south": 34.0,
+            "east": 14.85,
+            "west": 10.0
+        },
+        "news_id": 9742
+    },
+    {
+        "event_time": 1614815675,
+        "scores": [
+            0,
+            0,
+            10,
+            0,
+            0,
+            70
+        ],
+        "bounding_box": {
+            "north": 51.9225,
+            "south": 22.6144,
+            "east": 114.3083,
+            "west": 4.3175
+        },
+        "news_id": 9741
+    },
+    {
+        "event_time": 1615768033,
+        "scores": [
+            0,
+            0,
+            30,
+            10,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 51.32,
+            "south": 51.2,
+            "east": 4.45,
+            "west": 4.3
+        },
+        "news_id": 9737
+    },
+    {
+        "event_time": 1616713200,
+        "scores": [
+            95,
+            0,
+            70,
+            85,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 36,
+            "south": -34,
+            "east": 70,
+            "west": -6
+        },
+        "news_id": 9732
+    },
+    {
+        "event_time": 1616761726,
+        "scores": [
+            10,
+            80,
+            20,
+            0,
+            30,
+            90
+        ],
+        "bounding_box": {
+            "north": -27.4698,
+            "south": -34.4667,
+            "east": 153.0251,
+            "west": 150.9
+        },
+        "news_id": 9731
+    },
+    {
+        "event_time": 1618723977,
+        "scores": [
+            75,
+            85,
+            30,
+            80,
+            90,
+            95
+        ],
+        "bounding_box": {
+            "north": 11.78,
+            "south": 9.93,
+            "east": 125.49,
+            "west": 124.88
+        },
+        "news_id": 9719
+    },
+    {
+        "event_time": 1619558546,
+        "scores": [
+            0,
+            20,
+            25,
+            0,
+            0,
+            75
+        ],
+        "bounding_box": {
+            "north": 45.6486,
+            "south": 45.4662,
+            "east": 13.7768,
+            "west": 12.2417
+        },
+        "news_id": 9716
+    },
+    {
+        "event_time": 1620187048,
+        "scores": [
+            40,
+            70,
+            20,
+            0,
+            30,
+            100
+        ],
+        "bounding_box": {
+            "north": 25.13,
+            "south": -8.65,
+            "east": 120.0,
+            "west": 60.0
+        },
+        "news_id": 9712
+    },
+    {
+        "event_time": 1620603733,
+        "scores": [
+            30,
+            70,
+            50,
+            10,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 51.9225,
+            "south": 50.8198,
+            "east": 4.4792,
+            "west": -1.088
+        },
+        "news_id": 9710
+    },
+    {
+        "event_time": 1640966400,
+        "scores": [
+            20,
+            30,
+            70,
+            50,
+            40,
+            100
+        ],
+        "bounding_box": {
+            "north": 49.5,
+            "south": 49.45,
+            "east": 0.15,
+            "west": 0.1
+        },
+        "news_id": 9704
+    },
+    {
+        "event_time": 1621292306,
+        "scores": [
+            80,
+            90,
+            70,
+            85,
+            90,
+            95
+        ],
+        "bounding_box": {
+            "north": 31.81,
+            "south": 31.5,
+            "east": 34.65,
+            "west": 34.4
+        },
+        "news_id": 9703
+    },
+    {
+        "event_time": 1620576000,
+        "scores": [
+            0,
+            0,
+            10,
+            0,
+            0,
+            20
+        ],
+        "bounding_box": {
+            "north": 51.985,
+            "south": 51.885,
+            "east": 4.3697,
+            "west": 4.2697
+        },
+        "news_id": 9701
+    },
+    {
+        "event_time": 1621576800,
+        "scores": [
+            65,
+            40,
+            20,
+            75,
+            80,
+            70
+        ],
+        "bounding_box": {
+            "north": 36.75,
+            "south": 36.55,
+            "east": 133.4,
+            "west": 133.2
+        },
+        "news_id": 9699
+    },
+    {
+        "event_time": 1622003239,
+        "scores": [
+            10,
+            0,
+            80,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 39.46,
+            "south": 39.44,
+            "east": -0.3,
+            "west": -0.34
+        },
+        "news_id": 9698
+    },
+    {
+        "event_time": 1622154364,
+        "scores": [
+            10,
+            20,
+            80,
+            10,
+            10,
+            100
+        ],
+        "bounding_box": {
+            "north": 19.076,
+            "south": 18.8995,
+            "east": 72.9989,
+            "west": 72.7925
+        },
+        "news_id": 9696
+    },
+    {
+        "event_time": 1622155174,
+        "scores": [
+            0,
+            0,
+            10,
+            0,
+            0,
+            80
+        ],
+        "bounding_box": {
+            "north": 53.3667,
+            "south": 22.7953,
+            "east": 113.5611,
+            "west": -96.1333
+        },
+        "news_id": 9695
+    },
+    {
+        "event_time": 1622155457,
+        "scores": [
+            0,
+            10,
+            0,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 51.96,
+            "south": 51.94,
+            "east": 4.1,
+            "west": 4.0
+        },
+        "news_id": 9694
+    },
+    {
+        "event_time": 1622673294,
+        "scores": [
+            65,
+            30,
+            10,
+            50,
+            70,
+            95
+        ],
+        "bounding_box": {
+            "north": 60.5,
+            "south": 59.5,
+            "east": 2.0,
+            "west": 1.0
+        },
+        "news_id": 9692
+    },
+    {
+        "event_time": 1622781314,
+        "scores": [
+            0,
+            10,
+            60,
+            0,
+            0,
+            95
+        ],
+        "bounding_box": {
+            "north": -23.9,
+            "south": -23.99,
+            "east": -46.3,
+            "west": -46.35
+        },
+        "news_id": 9690
+    },
+    {
+        "event_time": 1623021000,
+        "scores": [
+            10,
+            20,
+            70,
+            15,
+            10,
+            90
+        ],
+        "bounding_box": {
+            "north": 41.35,
+            "south": 41.3,
+            "east": 2.2,
+            "west": 2.15
+        },
+        "news_id": 9689
+    },
+    {
+        "event_time": 1623027462,
+        "scores": [
+            10,
+            70,
+            0,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 5.16,
+            "south": -33.75,
+            "east": -34.0,
+            "west": -73.59
+        },
+        "news_id": 9688
+    },
+    {
+        "event_time": 1623113669,
+        "scores": [
+            85,
+            90,
+            10,
+            0,
+            30,
+            100
+        ],
+        "bounding_box": {
+            "north": -6.1,
+            "south": -6.2,
+            "east": 106.9,
+            "west": 106.8
+        },
+        "news_id": 9687
+    },
+    {
+        "event_time": 1623191012,
+        "scores": [
+            20,
+            10,
+            40,
+            0,
+            30,
+            30
+        ],
+        "bounding_box": {
+            "north": 5.8,
+            "south": 5.6,
+            "east": 100.4,
+            "west": 100.2
+        },
+        "news_id": 9685
+    },
+    {
+        "event_time": 1623278168,
+        "scores": [
+            80,
+            85,
+            90,
+            30,
+            20,
+            100
+        ],
+        "bounding_box": {
+            "north": 34.05,
+            "south": 22.48,
+            "east": -118.15,
+            "west": 114.07
+        },
+        "news_id": 9684
+    },
+    {
+        "event_time": 1622563200,
+        "scores": [
+            90,
+            95,
+            85,
+            30,
+            10,
+            95
+        ],
+        "bounding_box": {
+            "north": 22.8,
+            "south": 22.1,
+            "east": 114.3,
+            "west": 113.5
+        },
+        "news_id": 9683
+    },
+    {
+        "event_time": 1623901191,
+        "scores": [
+            70,
+            30,
+            80,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 60.17,
+            "south": 51.23,
+            "east": 30.34,
+            "west": -8.48
+        },
+        "news_id": 9681
+    },
+    {
+        "event_time": 1623686400,
+        "scores": [
+            10,
+            30,
+            70,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 59.3294,
+            "south": 54.3233,
+            "east": 18.6435,
+            "west": 10.7461
+        },
+        "news_id": 9680
+    },
+    {
+        "event_time": 1624233177,
+        "scores": [
+            0,
+            0,
+            20,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": -19.8,
+            "south": -19.85,
+            "east": -40.25,
+            "west": -40.3
+        },
+        "news_id": 9679
+    },
+    {
+        "event_time": 1623340800,
+        "scores": [
+            85,
+            90,
+            70,
+            20,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 22.61,
+            "south": 22.56,
+            "east": 114.32,
+            "west": 114.25
+        },
+        "news_id": 9678
+    },
+    {
+        "event_time": 1624489080,
+        "scores": [
+            0,
+            0,
+            0,
+            0,
+            10,
+            70
+        ],
+        "bounding_box": {
+            "north": 51.3,
+            "south": 51.25,
+            "east": 4.35,
+            "west": 4.25
+        },
+        "news_id": 9677
+    },
+    {
+        "event_time": 1624464000,
+        "scores": [
+            85,
+            90,
+            70,
+            60,
+            10,
+            100
+        ],
+        "bounding_box": {
+            "north": 22.85,
+            "south": 22.5,
+            "east": 114.3,
+            "west": 113.5
+        },
+        "news_id": 9676
+    },
+    {
+        "event_time": 1609445331,
+        "scores": [
+            75,
+            65,
+            45,
+            55,
+            85,
+            75
+        ],
+        "bounding_box": {
+            "north": 10,
+            "south": 0,
+            "east": 15,
+            "west": 0
+        },
+        "news_id": 2459
+    },
+    {
+        "event_time": 1609746729,
+        "scores": [
+            70,
+            60,
+            30,
+            50,
+            80,
+            90
+        ],
+        "bounding_box": {
+            "north": 27.2,
+            "south": 26.5,
+            "east": 56.5,
+            "west": 56.0
+        },
+        "news_id": 2453
+    },
+    {
+        "event_time": 1610035200,
+        "scores": [
+            20,
+            50,
+            0,
+            0,
+            40,
+            80
+        ],
+        "bounding_box": {
+            "north": 8.0,
+            "south": 7.8,
+            "east": 98.5,
+            "west": 98.3
+        },
+        "news_id": 2447
+    },
+    {
+        "event_time": 1610481000,
+        "scores": [
+            60,
+            20,
+            30,
+            10,
+            70,
+            80
+        ],
+        "bounding_box": {
+            "north": 20.5,
+            "south": 19.5,
+            "east": 131.0,
+            "west": 130.0
+        },
+        "news_id": 2443
+    },
+    {
+        "event_time": 1610553600,
+        "scores": [
+            0,
+            0,
+            10,
+            0,
+            0,
+            30
+        ],
+        "bounding_box": {
+            "north": 21.5,
+            "south": 21.3,
+            "east": 72.3,
+            "west": 72.1
+        },
+        "news_id": 2441
+    },
+    {
+        "event_time": 1610686127,
+        "scores": [
+            40,
+            20,
+            10,
+            50,
+            30,
+            90
+        ],
+        "bounding_box": {
+            "north": 55.5,
+            "south": 53.8,
+            "east": 15.5,
+            "west": 11.4
+        },
+        "news_id": 2439
+    },
+    {
+        "event_time": 1610834415,
+        "scores": [
+            10,
+            10,
+            0,
+            0,
+            40,
+            50
+        ],
+        "bounding_box": {
+            "north": 10.491,
+            "south": 9.975,
+            "east": -75.42,
+            "west": -75.6
+        },
+        "news_id": 2435
+    },
+    {
+        "event_time": 1610812799,
+        "scores": [
+            70,
+            20,
+            30,
+            60,
+            80,
+            70
+        ],
+        "bounding_box": {
+            "north": 45.0,
+            "south": 30.0,
+            "east": -135.0,
+            "west": -160.0
+        },
+        "news_id": 2434
+    },
+    {
+        "event_time": 1610929635,
+        "scores": [
+            60,
+            40,
+            20,
+            10,
+            70,
+            80
+        ],
+        "bounding_box": {
+            "north": 27.5,
+            "south": 24.0,
+            "east": 60.0,
+            "west": 56.0
+        },
+        "news_id": 2431
+    },
+    {
+        "event_time": 1610932859,
+        "scores": [
+            70,
+            60,
+            20,
+            0,
+            90,
+            100
+        ],
+        "bounding_box": {
+            "north": 6.0,
+            "south": 3.0,
+            "east": 8.0,
+            "west": 3.0
+        },
+        "news_id": 2430
+    },
+    {
+        "event_time": 1611021153,
+        "scores": [
+            10,
+            80,
+            0,
+            0,
+            0,
+            95
+        ],
+        "bounding_box": {
+            "north": 54.71,
+            "south": 54.08,
+            "east": 20.45,
+            "west": 12.1
+        },
+        "news_id": 2425
+    },
+    {
+        "event_time": 1611110159,
+        "scores": [
+            20,
+            40,
+            30,
+            0,
+            20,
+            70
+        ],
+        "bounding_box": {
+            "north": 1.35,
+            "south": 1.2,
+            "east": 104.0,
+            "west": 103.5
+        },
+        "news_id": 2424
+    },
+    {
+        "event_time": 1611273486,
+        "scores": [
+            0,
+            0,
+            80,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 14.5933,
+            "south": 14.5733,
+            "east": 120.9767,
+            "west": 120.9567
+        },
+        "news_id": 2420
+    },
+    {
+        "event_time": 1610726400,
+        "scores": [
+            20,
+            0,
+            80,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 53.63,
+            "south": 43.35,
+            "east": -0.19,
+            "west": -3.03
+        },
+        "news_id": 2419
+    },
+    {
+        "event_time": 1611618013,
+        "scores": [
+            20,
+            0,
+            15,
+            35,
+            55,
+            10
+        ],
+        "bounding_box": {
+            "north": 29.0,
+            "south": 27.5,
+            "east": -75.0,
+            "west": -80.0
+        },
+        "news_id": 2408
+    },
+    {
+        "event_time": 1611721792,
+        "scores": [
+            85,
+            75,
+            50,
+            20,
+            90,
+            95
+        ],
+        "bounding_box": {
+            "north": 6.0,
+            "south": -5.0,
+            "east": 10.0,
+            "west": -5.0
+        },
+        "news_id": 2405
+    },
+    {
+        "event_time": 1611801483,
+        "scores": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            80
+        ],
+        "bounding_box": {
+            "north": 51.5,
+            "south": 51.4,
+            "east": 6.8,
+            "west": 6.7
+        },
+        "news_id": 2402
+    },
+    {
+        "event_time": 1611885947,
+        "scores": [
+            60,
+            50,
+            70,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 51.35,
+            "south": 51.3,
+            "east": 3.25,
+            "west": 3.15
+        },
+        "news_id": 2399
+    },
+    {
+        "event_time": 1611888403,
+        "scores": [
+            85,
+            0,
+            90,
+            70,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 22.78,
+            "south": 22.35,
+            "east": 114.06,
+            "west": 113.56
+        },
+        "news_id": 2398
+    },
+    {
+        "event_time": 1611590400,
+        "scores": [
+            40,
+            20,
+            0,
+            0,
+            75,
+            60
+        ],
+        "bounding_box": {
+            "north": 35.0,
+            "south": 30.0,
+            "east": 145.0,
+            "west": 140.0
+        },
+        "news_id": 2388
+    },
+    {
+        "event_time": 1612308934,
+        "scores": [
+            20,
+            10,
+            75,
+            0,
+            10,
+            90
+        ],
+        "bounding_box": {
+            "north": 51.35,
+            "south": 51.3,
+            "east": 3.25,
+            "west": 3.15
+        },
+        "news_id": 2379
+    },
+    {
+        "event_time": 1612830272,
+        "scores": [
+            70,
+            50,
+            0,
+            60,
+            80,
+            95
+        ],
+        "bounding_box": {
+            "north": 15.5,
+            "south": 13.0,
+            "east": 43.5,
+            "west": 42.5
+        },
+        "news_id": 2371
+    },
+    {
+        "event_time": 1612844400,
+        "scores": [
+            70,
+            65,
+            30,
+            10,
+            80,
+            75
+        ],
+        "bounding_box": {
+            "north": 1.5,
+            "south": 0.0,
+            "east": 7.0,
+            "west": 5.0
+        },
+        "news_id": 2370
+    },
+    {
+        "event_time": 1614528000,
+        "scores": [
+            10,
+            30,
+            70,
+            0,
+            20,
+            60
+        ],
+        "bounding_box": {
+            "north": 25.5,
+            "south": 25.0,
+            "east": 51.6,
+            "west": 51.4
+        },
+        "news_id": 2368
+    },
+    {
+        "event_time": 1613361631,
+        "scores": [
+            10,
+            20,
+            70,
+            30,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 51.331,
+            "south": 51.23,
+            "east": 4.4053,
+            "west": 3.2139
+        },
+        "news_id": 2359
+    },
+    {
+        "event_time": 1613318400,
+        "scores": [
+            10,
+            20,
+            0,
+            10,
+            30,
+            0
+        ],
+        "bounding_box": {
+            "north": 30.6,
+            "south": 30.56,
+            "east": 32.3,
+            "west": 32.24
+        },
+        "news_id": 2357
+    },
+    {
+        "event_time": 1613517267,
+        "scores": [
+            0,
+            60,
+            0,
+            0,
+            10,
+            75
+        ],
+        "bounding_box": {
+            "north": 3.75,
+            "south": 3.75,
+            "east": 8.7833,
+            "west": 8.7833
+        },
+        "news_id": 2355
+    },
+    {
+        "event_time": 1613800758,
+        "scores": [
+            40,
+            70,
+            30,
+            80,
+            85,
+            90
+        ],
+        "bounding_box": {
+            "north": 0.1,
+            "south": -0.1,
+            "east": 109.4,
+            "west": 109.2
+        },
+        "news_id": 2347
+    },
+    {
+        "event_time": 1613707200,
+        "scores": [
+            40,
+            30,
+            20,
+            50,
+            70,
+            80
+        ],
+        "bounding_box": {
+            "north": 15.12,
+            "south": 10.03,
+            "east": 109.5,
+            "west": 105.7
+        },
+        "news_id": 2346
+    },
+    {
+        "event_time": 1611072000,
+        "scores": [
+            40,
+            70,
+            10,
+            30,
+            60,
+            80
+        ],
+        "bounding_box": {
+            "north": -10.65,
+            "south": -10.85,
+            "east": 165.9,
+            "west": 165.7
+        },
+        "news_id": 2343
+    },
+    {
+        "event_time": 1614042128,
+        "scores": [
+            0,
+            0,
+            90,
+            10,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 53.5833,
+            "south": 53.55,
+            "east": 9.8,
+            "west": 9.7
+        },
+        "news_id": 2341
+    },
+    {
+        "event_time": 1614062637,
+        "scores": [
+            70,
+            50,
+            30,
+            40,
+            70,
+            20
+        ],
+        "bounding_box": {
+            "north": 35.9,
+            "south": 35.6,
+            "east": 140.9,
+            "west": 140.4
+        },
+        "news_id": 2339
+    },
+    {
+        "event_time": 1613059200,
+        "scores": [
+            10,
+            40,
+            0,
+            20,
+            30,
+            70
+        ],
+        "bounding_box": {
+            "north": -10.7,
+            "south": -10.8,
+            "east": 165.85,
+            "west": 165.75
+        },
+        "news_id": 2338
+    },
+    {
+        "event_time": 1614151832,
+        "scores": [
+            60,
+            30,
+            10,
+            50,
+            80,
+            90
+        ],
+        "bounding_box": {
+            "north": 44.0,
+            "south": 43.0,
+            "east": -5.0,
+            "west": -7.0
+        },
+        "news_id": 2335
+    },
+    {
+        "event_time": 1614209467,
+        "scores": [
+            30,
+            70,
+            0,
+            0,
+            0,
+            80
+        ],
+        "bounding_box": {
+            "north": 53.5417,
+            "south": 51.2894,
+            "east": 9.991,
+            "west": 4.2594
+        },
+        "news_id": 2334
+    },
+    {
+        "event_time": 1614182400,
+        "scores": [
+            60,
+            40,
+            0,
+            0,
+            70,
+            65
+        ],
+        "bounding_box": {
+            "north": 26.5,
+            "south": 24.0,
+            "east": 59.0,
+            "west": 56.0
+        },
+        "news_id": 2329
+    },
+    {
+        "event_time": 1614355200,
+        "scores": [
+            70,
+            30,
+            10,
+            60,
+            80,
+            90
+        ],
+        "bounding_box": {
+            "north": 36.5,
+            "south": 36.0,
+            "east": -4.8,
+            "west": -5.4
+        },
+        "news_id": 2328
+    },
+    {
+        "event_time": 1614820061,
+        "scores": [
+            20,
+            30,
+            25,
+            0,
+            0,
+            80
+        ],
+        "bounding_box": {
+            "north": 53.5587,
+            "south": 53.5243,
+            "east": 8.62,
+            "west": 8.536
+        },
+        "news_id": 2321
+    },
+    {
+        "event_time": 1613577600,
+        "scores": [
+            0,
+            85,
+            0,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 53.08,
+            "south": 53.06,
+            "east": 7.41,
+            "west": 7.39
+        },
+        "news_id": 2319
+    },
+    {
+        "event_time": 1614873600,
+        "scores": [
+            10,
+            30,
+            0,
+            0,
+            20,
+            70
+        ],
+        "bounding_box": {
+            "north": 4.5,
+            "south": 3.8,
+            "east": 101.0,
+            "west": 100.3
+        },
+        "news_id": 2316
+    },
+    {
+        "event_time": 1615186918,
+        "scores": [
+            30,
+            40,
+            10,
+            25,
+            50,
+            20
+        ],
+        "bounding_box": {
+            "north": 9.6,
+            "south": 9.4,
+            "east": 100.1,
+            "west": 99.9
+        },
+        "news_id": 2311
+    },
+    {
+        "event_time": 1615250229,
+        "scores": [
+            80,
+            70,
+            60,
+            50,
+            90,
+            100
+        ],
+        "bounding_box": {
+            "north": 62.3,
+            "south": 61.9,
+            "east": 5.5,
+            "west": 5.1
+        },
+        "news_id": 2307
+    },
+    {
+        "event_time": 1615354960,
+        "scores": [
+            40,
+            50,
+            20,
+            70,
+            60,
+            30
+        ],
+        "bounding_box": {
+            "north": 45.9,
+            "south": 45.7,
+            "east": 47.6,
+            "west": 47.4
+        },
+        "news_id": 2306
+    },
+    {
+        "event_time": 1615421647,
+        "scores": [
+            30,
+            10,
+            70,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 54.58,
+            "south": 50.37,
+            "east": 1.35,
+            "west": -4.14
+        },
+        "news_id": 2303
+    },
+    {
+        "event_time": 1615527820,
+        "scores": [
+            20,
+            0,
+            50,
+            0,
+            0,
+            80
+        ],
+        "bounding_box": {
+            "north": -7.05,
+            "south": -7.25,
+            "east": 112.75,
+            "west": 112.55
+        },
+        "news_id": 2298
+    },
+    {
+        "event_time": 1615762660,
+        "scores": [
+            40,
+            60,
+            70,
+            20,
+            0,
+            85
+        ],
+        "bounding_box": {
+            "north": 20,
+            "south": 5,
+            "east": 105,
+            "west": 95
+        },
+        "news_id": 2292
+    },
+    {
+        "event_time": 1615392000,
+        "scores": [
+            70,
+            60,
+            40,
+            30,
+            80,
+            90
+        ],
+        "bounding_box": {
+            "north": 28.0,
+            "south": 12.0,
+            "east": 62.0,
+            "west": 32.0
+        },
+        "news_id": 2290
+    },
+    {
+        "event_time": 1615852543,
+        "scores": [
+            30,
+            50,
+            10,
+            0,
+            40,
+            70
+        ],
+        "bounding_box": {
+            "north": 24.0,
+            "south": 23.4,
+            "east": -15.5,
+            "west": -16.4
+        },
+        "news_id": 2289
+    },
+    {
+        "event_time": 1616025874,
+        "scores": [
+            20,
+            30,
+            10,
+            0,
+            40,
+            70
+        ],
+        "bounding_box": {
+            "north": 36.72,
+            "south": 5.5,
+            "east": -4.42,
+            "west": -77.0
+        },
+        "news_id": 2282
+    },
+    {
+        "event_time": 1615996800,
+        "scores": [
+            10,
+            40,
+            0,
+            15,
+            75,
+            65
+        ],
+        "bounding_box": {
+            "north": 10.0,
+            "south": 9.0,
+            "east": 76.5,
+            "west": 75.0
+        },
+        "news_id": 2277
+    },
+    {
+        "event_time": 1564243200,
+        "scores": [
+            10,
+            70,
+            0,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 22.392,
+            "south": 22.292,
+            "east": -97.761,
+            "west": -97.961
+        },
+        "news_id": 2276
+    },
+    {
+        "event_time": 1615392000,
+        "scores": [
+            50,
+            30,
+            10,
+            0,
+            70,
+            100
+        ],
+        "bounding_box": {
+            "north": 53.0,
+            "south": 52.0,
+            "east": -165.0,
+            "west": -167.0
+        },
+        "news_id": 2273
+    },
+    {
+        "event_time": 1616445663,
+        "scores": [
+            10,
+            10,
+            0,
+            0,
+            20,
+            10
+        ],
+        "bounding_box": {
+            "north": 5.0,
+            "south": 0.0,
+            "east": 10.0,
+            "west": 0.0
+        },
+        "news_id": 2272
+    },
+    {
+        "event_time": 1616457958,
+        "scores": [
+            70,
+            50,
+            30,
+            20,
+            80,
+            100
+        ],
+        "bounding_box": {
+            "north": 6.0,
+            "south": 0.0,
+            "east": 10.0,
+            "west": 0.0
+        },
+        "news_id": 2271
+    },
+    {
+        "event_time": 1616460555,
+        "scores": [
+            40,
+            75,
+            90,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 33.8,
+            "south": 33.7,
+            "east": -118.2,
+            "west": -118.3
+        },
+        "news_id": 2270
+    },
+    {
+        "event_time": 1616566983,
+        "scores": [
+            10,
+            15,
+            0,
+            0,
+            0,
+            35
+        ],
+        "bounding_box": {
+            "north": -4.04,
+            "south": -4.06,
+            "east": 39.68,
+            "west": 39.66
+        },
+        "news_id": 2268
+    },
+    {
+        "event_time": 1616601600,
+        "scores": [
+            60,
+            20,
+            10,
+            0,
+            70,
+            50
+        ],
+        "bounding_box": {
+            "north": 20.0,
+            "south": 15.0,
+            "east": 65.0,
+            "west": 60.0
+        },
+        "news_id": 2263
+    },
+    {
+        "event_time": 1616974348,
+        "scores": [
+            10,
+            70,
+            40,
+            0,
+            0,
+            80
+        ],
+        "bounding_box": {
+            "north": 12.66,
+            "south": 7.2,
+            "east": 100.9,
+            "west": 99.8
+        },
+        "news_id": 2256
+    },
+    {
+        "event_time": 1616994000,
+        "scores": [
+            50,
+            70,
+            80,
+            60,
+            20,
+            30
+        ],
+        "bounding_box": {
+            "north": 31.25,
+            "south": 29.9333,
+            "east": 32.6,
+            "west": 32.3
+        },
+        "news_id": 2255
+    },
+    {
+        "event_time": 1616947200,
+        "scores": [
+            30,
+            40,
+            70,
+            60,
+            50,
+            80
+        ],
+        "bounding_box": {
+            "north": 45.83,
+            "south": 44.41,
+            "east": 13.77,
+            "west": 8.93
+        },
+        "news_id": 2253
+    },
+    {
+        "event_time": 1617170400,
+        "scores": [
+            30,
+            50,
+            20,
+            40,
+            60,
+            70
+        ],
+        "bounding_box": {
+            "north": 38.7,
+            "south": 38.65,
+            "east": -9.1,
+            "west": -9.2
+        },
+        "news_id": 2248
+    },
+    {
+        "event_time": 1617589861,
+        "scores": [
+            60,
+            40,
+            30,
+            20,
+            70,
+            80
+        ],
+        "bounding_box": {
+            "north": 62.47,
+            "south": 62.0,
+            "east": 6.15,
+            "west": 4.15
+        },
+        "news_id": 2243
+    },
+    {
+        "event_time": 1617724800,
+        "scores": [
+            20,
+            10,
+            0,
+            0,
+            15,
+            25
+        ],
+        "bounding_box": {
+            "north": 11.5,
+            "south": 9.5,
+            "east": 71.0,
+            "west": 69.0
+        },
+        "news_id": 2230
+    },
+    {
+        "event_time": 1618446938,
+        "scores": [
+            0,
+            0,
+            70,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 17.3,
+            "south": 17.2,
+            "east": 73.3,
+            "west": 73.1
+        },
+        "news_id": 2223
+    },
+    {
+        "event_time": 1618536371,
+        "scores": [
+            20,
+            0,
+            20,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 53.55,
+            "south": 53.5,
+            "east": 8.15,
+            "west": 8.1
+        },
+        "news_id": 2220
+    },
+    {
+        "event_time": 1618544895,
+        "scores": [
+            40,
+            20,
+            70,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 22.76,
+            "south": 13.25,
+            "east": 87.0,
+            "west": 69.72
+        },
+        "news_id": 2219
+    },
+    {
+        "event_time": 1617724800,
+        "scores": [
+            70,
+            85,
+            50,
+            90,
+            80,
+            100
+        ],
+        "bounding_box": {
+            "north": 30.0175,
+            "south": 29.9333,
+            "east": 32.5833,
+            "west": 32.55
+        },
+        "news_id": 2218
+    },
+    {
+        "event_time": 1560700800,
+        "scores": [
+            30,
+            70,
+            10,
+            0,
+            20,
+            90
+        ],
+        "bounding_box": {
+            "north": 51.9225,
+            "south": -33.0472,
+            "east": 4.4797,
+            "west": -79.5167
+        },
+        "news_id": 2216
+    },
+    {
+        "event_time": 1618882777,
+        "scores": [
+            40,
+            70,
+            30,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 21.5,
+            "south": 21.3,
+            "east": 72.3,
+            "west": 72.1
+        },
+        "news_id": 2212
+    },
+    {
+        "event_time": 1618964132,
+        "scores": [
+            0,
+            70,
+            50,
+            0,
+            20,
+            80
+        ],
+        "bounding_box": {
+            "north": 29.3117,
+            "south": 29.3117,
+            "east": -94.7947,
+            "west": -94.7947
+        },
+        "news_id": 2208
+    },
+    {
+        "event_time": 1618972374,
+        "scores": [
+            20,
+            95,
+            100,
+            30,
+            10,
+            100
+        ],
+        "bounding_box": {
+            "north": 33.8,
+            "south": 33.6,
+            "east": -118.1,
+            "west": -118.3
+        },
+        "news_id": 2207
+    },
+    {
+        "event_time": 1619133097,
+        "scores": [
+            30,
+            15,
+            50,
+            10,
+            10,
+            90
+        ],
+        "bounding_box": {
+            "north": -21.5,
+            "south": -22.5,
+            "east": 115.0,
+            "west": 113.5
+        },
+        "news_id": 2204
+    },
+    {
+        "event_time": 1619136075,
+        "scores": [
+            20,
+            40,
+            30,
+            0,
+            10,
+            70
+        ],
+        "bounding_box": {
+            "north": 43.05,
+            "south": 37.94,
+            "east": 23.64,
+            "west": 15.9
+        },
+        "news_id": 2203
+    },
+    {
+        "event_time": 1619107200,
+        "scores": [
+            0,
+            80,
+            0,
+            0,
+            0,
+            70
+        ],
+        "bounding_box": {
+            "north": 41.71,
+            "south": 41.67,
+            "east": -8.79,
+            "west": -8.85
+        },
+        "news_id": 2200
+    },
+    {
+        "event_time": 1619215238,
+        "scores": [
+            10,
+            10,
+            20,
+            15,
+            10,
+            50
+        ],
+        "bounding_box": {
+            "north": 58.9847,
+            "south": 56.462,
+            "east": -2.9707,
+            "west": -3.3
+        },
+        "news_id": 2199
+    },
+    {
+        "event_time": 1619290745,
+        "scores": [
+            60,
+            40,
+            20,
+            50,
+            70,
+            70
+        ],
+        "bounding_box": {
+            "north": 35.45,
+            "south": 35.05,
+            "east": 36.14,
+            "west": 35.74
+        },
+        "news_id": 2197
+    },
+    {
+        "event_time": 1619300123,
+        "scores": [
+            20,
+            40,
+            10,
+            20,
+            30,
+            90
+        ],
+        "bounding_box": {
+            "north": 30.0,
+            "south": 29.9,
+            "east": 32.6,
+            "west": 32.5
+        },
+        "news_id": 2196
+    },
+    {
+        "event_time": 1619392118,
+        "scores": [
+            10,
+            60,
+            20,
+            0,
+            10,
+            80
+        ],
+        "bounding_box": {
+            "north": 52.0,
+            "south": 51.8,
+            "east": 4.6,
+            "west": 4.3
+        },
+        "news_id": 2194
+    },
+    {
+        "event_time": 1619398800,
+        "scores": [
+            60,
+            80,
+            30,
+            85,
+            90,
+            75
+        ],
+        "bounding_box": {
+            "north": 10.72,
+            "south": 10.68,
+            "east": 106.8,
+            "west": 106.72
+        },
+        "news_id": 2193
+    },
+    {
+        "event_time": 1619483525,
+        "scores": [
+            30,
+            70,
+            65,
+            20,
+            10,
+            90
+        ],
+        "bounding_box": {
+            "north": 31.5,
+            "south": 29.5,
+            "east": 32.6,
+            "west": 32.0
+        },
+        "news_id": 2188
+    },
+    {
+        "event_time": 1619568985,
+        "scores": [
+            50,
+            20,
+            60,
+            30,
+            40,
+            90
+        ],
+        "bounding_box": {
+            "north": 41.3,
+            "south": 40.8,
+            "east": 29.2,
+            "west": 28.6
+        },
+        "news_id": 2186
+    },
+    {
+        "event_time": 1619737252,
+        "scores": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            95
+        ],
+        "bounding_box": {
+            "north": 9.6,
+            "south": 8.9,
+            "east": -79.3,
+            "west": -80.0
+        },
+        "news_id": 2183
+    },
+    {
+        "event_time": 1619745011,
+        "scores": [
+            0,
+            30,
+            50,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 54.19,
+            "south": 54.17,
+            "east": 12.1,
+            "west": 12.08
+        },
+        "news_id": 2182
+    },
+    {
+        "event_time": 1619756117,
+        "scores": [
+            70,
+            85,
+            30,
+            90,
+            80,
+            100
+        ],
+        "bounding_box": {
+            "north": -20.0,
+            "south": -34.0,
+            "east": -54.0,
+            "west": -62.0
+        },
+        "news_id": 2181
+    },
+    {
+        "event_time": 1619823171,
+        "scores": [
+            65,
+            50,
+            20,
+            30,
+            75,
+            80
+        ],
+        "bounding_box": {
+            "north": 10.0,
+            "south": -10.0,
+            "east": 10.0,
+            "west": -10.0
+        },
+        "news_id": 2179
+    },
+    {
+        "event_time": 1620080157,
+        "scores": [
+            85,
+            60,
+            70,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 23.0,
+            "south": 8.0,
+            "east": 88.0,
+            "west": 68.0
+        },
+        "news_id": 2175
+    },
+    {
+        "event_time": 1620186413,
+        "scores": [
+            10,
+            30,
+            20,
+            0,
+            70,
+            90
+        ],
+        "bounding_box": {
+            "north": 45,
+            "south": -35,
+            "east": 180,
+            "west": 80
+        },
+        "news_id": 2172
+    },
+    {
+        "event_time": 1620255821,
+        "scores": [
+            10,
+            0,
+            20,
+            0,
+            0,
+            85
+        ],
+        "bounding_box": {
+            "north": 51.9225,
+            "south": 51.4344,
+            "east": 6.7623,
+            "west": 4.47917
+        },
+        "news_id": 2170
+    },
+    {
+        "event_time": 1620257293,
+        "scores": [
+            0,
+            0,
+            70,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 59.7,
+            "south": 59.5,
+            "east": 17.6,
+            "west": 16.5
+        },
+        "news_id": 2169
+    },
+    {
+        "event_time": 1620258258,
+        "scores": [
+            10,
+            30,
+            70,
+            40,
+            50,
+            100
+        ],
+        "bounding_box": {
+            "north": 62.4,
+            "south": 62.38,
+            "east": 17.31,
+            "west": 17.29
+        },
+        "news_id": 2168
+    },
+    {
+        "event_time": 1620421394,
+        "scores": [
+            10,
+            10,
+            0,
+            0,
+            20,
+            10
+        ],
+        "bounding_box": {
+            "north": 14.82,
+            "south": 14.8,
+            "east": 74.13,
+            "west": 74.11
+        },
+        "news_id": 2166
+    },
+    {
+        "event_time": 1620538722,
+        "scores": [
+            70,
+            70,
+            10,
+            0,
+            85,
+            75
+        ],
+        "bounding_box": {
+            "north": 35.25,
+            "south": 35.15,
+            "east": 35.95,
+            "west": 35.85
+        },
+        "news_id": 2162
+    },
+    {
+        "event_time": 1620604820,
+        "scores": [
+            20,
+            40,
+            30,
+            50,
+            70,
+            90
+        ],
+        "bounding_box": {
+            "north": 33.91,
+            "south": 33.89,
+            "east": 35.49,
+            "west": 35.47
+        },
+        "news_id": 2161
+    },
+    {
+        "event_time": 1620806280,
+        "scores": [
+            20,
+            80,
+            10,
+            0,
+            10,
+            90
+        ],
+        "bounding_box": {
+            "north": 68.4372,
+            "south": 68.4372,
+            "east": 17.4286,
+            "west": 17.4286
+        },
+        "news_id": 2157
+    },
+    {
+        "event_time": 1620688220,
+        "scores": [
+            10,
+            90,
+            10,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": -7.7,
+            "south": -7.75,
+            "east": 109.05,
+            "west": 109.0
+        },
+        "news_id": 2155
+    },
+    {
+        "event_time": 1620939600,
+        "scores": [
+            20,
+            80,
+            50,
+            70,
+            75,
+            100
+        ],
+        "bounding_box": {
+            "north": 22.6,
+            "south": 22.4,
+            "east": 88.4,
+            "west": 88.2
+        },
+        "news_id": 2147
+    },
+    {
+        "event_time": 1619971200,
+        "scores": [
+            40,
+            70,
+            80,
+            10,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 30.0,
+            "south": 1.3,
+            "east": 103.8,
+            "west": 32.5
+        },
+        "news_id": 2145
+    },
+    {
+        "event_time": 1621206676,
+        "scores": [
+            0,
+            0,
+            80,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": -5.85,
+            "south": -6.05,
+            "east": 12.45,
+            "west": 12.25
+        },
+        "news_id": 2144
+    },
+    {
+        "event_time": 1620230400,
+        "scores": [
+            10,
+            40,
+            85,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 47.5891,
+            "south": 22.6143,
+            "east": 121.4737,
+            "west": -122.3356
+        },
+        "news_id": 2142
+    },
+    {
+        "event_time": 1621465563,
+        "scores": [
+            10,
+            20,
+            30,
+            0,
+            0,
+            80
+        ],
+        "bounding_box": {
+            "north": 50.91,
+            "south": 50.89,
+            "east": -1.39,
+            "west": -1.42
+        },
+        "news_id": 2137
+    },
+    {
+        "event_time": 1620057600,
+        "scores": [
+            20,
+            70,
+            10,
+            0,
+            30,
+            80
+        ],
+        "bounding_box": {
+            "north": -33.98,
+            "south": -34.0,
+            "east": 151.22,
+            "west": 151.18
+        },
+        "news_id": 2133
+    },
+    {
+        "event_time": 1621724031,
+        "scores": [
+            70,
+            80,
+            40,
+            20,
+            30,
+            90
+        ],
+        "bounding_box": {
+            "north": 22.6,
+            "south": 1.3,
+            "east": 114.3,
+            "west": 103.5
+        },
+        "news_id": 2130
+    },
+    {
+        "event_time": 1621785600,
+        "scores": [
+            10,
+            90,
+            70,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 6.0,
+            "south": -11.0,
+            "east": 141.0,
+            "west": 95.0
+        },
+        "news_id": 2125
+    },
+    {
+        "event_time": 1621908908,
+        "scores": [
+            40,
+            20,
+            60,
+            10,
+            30,
+            90
+        ],
+        "bounding_box": {
+            "north": 59.8,
+            "south": 54.0,
+            "east": 28.5,
+            "west": 12.5
+        },
+        "news_id": 2124
+    },
+    {
+        "event_time": 1620576000,
+        "scores": [
+            40,
+            60,
+            20,
+            0,
+            0,
+            70
+        ],
+        "bounding_box": {
+            "north": 44.2,
+            "south": 44.15,
+            "east": 28.67,
+            "west": 28.6
+        },
+        "news_id": 2122
+    },
+    {
+        "event_time": 1622067686,
+        "scores": [
+            10,
+            10,
+            70,
+            0,
+            20,
+            90
+        ],
+        "bounding_box": {
+            "north": 57.8,
+            "south": 57.5,
+            "east": -3.8,
+            "west": -4.2
+        },
+        "news_id": 2120
+    },
+    {
+        "event_time": 1622068750,
+        "scores": [
+            40,
+            30,
+            70,
+            20,
+            50,
+            90
+        ],
+        "bounding_box": {
+            "north": 22.0,
+            "south": 20.0,
+            "east": 116.0,
+            "west": 114.0
+        },
+        "news_id": 2119
+    },
+    {
+        "event_time": 1622069134,
+        "scores": [
+            80,
+            95,
+            20,
+            70,
+            85,
+            100
+        ],
+        "bounding_box": {
+            "north": 23.03,
+            "south": 18.94,
+            "east": 72.83,
+            "west": 70.22
+        },
+        "news_id": 2118
+    },
+    {
+        "event_time": 1624636800,
+        "scores": [
+            0,
+            0,
+            30,
+            0,
+            10,
+            70
+        ],
+        "bounding_box": {
+            "north": 26.0965,
+            "south": 26.075,
+            "east": -80.108,
+            "west": -80.135
+        },
+        "news_id": 2109
+    },
+    {
+        "event_time": 1622413906,
+        "scores": [
+            60,
+            50,
+            30,
+            0,
+            80,
+            100
+        ],
+        "bounding_box": {
+            "north": 6,
+            "south": 0,
+            "east": 10,
+            "west": 0
+        },
+        "news_id": 2108
+    },
+    {
+        "event_time": 1622500927,
+        "scores": [
+            0,
+            0,
+            10,
+            0,
+            0,
+            80
+        ],
+        "bounding_box": {
+            "north": 31.81,
+            "south": 31.79,
+            "east": 34.66,
+            "west": 34.64
+        },
+        "news_id": 2105
+    },
+    {
+        "event_time": 1622501159,
+        "scores": [
+            30,
+            40,
+            70,
+            20,
+            30,
+            90
+        ],
+        "bounding_box": {
+            "north": 58.0,
+            "south": 48.0,
+            "east": 10.0,
+            "west": -5.0
+        },
+        "news_id": 2104
+    },
+    {
+        "event_time": 1621353600,
+        "scores": [
+            10,
+            0,
+            0,
+            0,
+            20,
+            20
+        ],
+        "bounding_box": {
+            "north": 20.0,
+            "south": 5.0,
+            "east": -75.0,
+            "west": -105.0
+        },
+        "news_id": 2096
+    },
+    {
+        "event_time": 1622607604,
+        "scores": [
+            0,
+            0,
+            80,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": -11.56,
+            "south": -11.58,
+            "east": -77.26,
+            "west": -77.28
+        },
+        "news_id": 2095
+    },
+    {
+        "event_time": 1622674056,
+        "scores": [
+            10,
+            40,
+            70,
+            70,
+            60,
+            100
+        ],
+        "bounding_box": {
+            "north": 30.708,
+            "south": 30.64,
+            "east": -88.02,
+            "west": -88.1
+        },
+        "news_id": 2092
+    },
+    {
+        "event_time": 1622476800,
+        "scores": [
+            60,
+            70,
+            20,
+            80,
+            85,
+            95
+        ],
+        "bounding_box": {
+            "north": 31.16,
+            "south": 31.12,
+            "east": -81.39,
+            "west": -81.43
+        },
+        "news_id": 2091
+    },
+    {
+        "event_time": 1622759301,
+        "scores": [
+            10,
+            10,
+            70,
+            20,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": -4.05,
+            "south": -6.8,
+            "east": 39.67,
+            "west": 39.28
+        },
+        "news_id": 2090
+    },
+    {
+        "event_time": 1622782068,
+        "scores": [
+            20,
+            30,
+            70,
+            10,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 46.0,
+            "south": 45.5,
+            "east": 47.6,
+            "west": 47.5
+        },
+        "news_id": 2089
+    },
+    {
+        "event_time": 1623048694,
+        "scores": [
+            20,
+            40,
+            10,
+            0,
+            30,
+            50
+        ],
+        "bounding_box": {
+            "north": 28.0,
+            "south": 14.7,
+            "east": -9.23,
+            "west": -17.5
+        },
+        "news_id": 2082
+    },
+    {
+        "event_time": 1622563200,
+        "scores": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": -4.03,
+            "south": -4.07,
+            "east": 39.69,
+            "west": 39.65
+        },
+        "news_id": 2079
+    },
+    {
+        "event_time": 1623196031,
+        "scores": [
+            20,
+            80,
+            10,
+            0,
+            30,
+            100
+        ],
+        "bounding_box": {
+            "north": 36.7333,
+            "south": 34.9333,
+            "east": 24.8,
+            "west": -5.4539
+        },
+        "news_id": 2076
+    },
+    {
+        "event_time": 1623210540,
+        "scores": [
+            0,
+            30,
+            0,
+            0,
+            0,
+            70
+        ],
+        "bounding_box": {
+            "north": 54.3,
+            "south": 53.8,
+            "east": 13.1,
+            "west": 11.4
+        },
+        "news_id": 2074
+    },
+    {
+        "event_time": 1622995200,
+        "scores": [
+            30,
+            70,
+            0,
+            20,
+            40,
+            60
+        ],
+        "bounding_box": {
+            "north": 47.2736,
+            "south": 47.1736,
+            "east": -2.1139,
+            "west": -2.3139
+        },
+        "news_id": 2071
+    },
+    {
+        "event_time": 1623367651,
+        "scores": [
+            85,
+            90,
+            70,
+            40,
+            20,
+            95
+        ],
+        "bounding_box": {
+            "north": 22.8,
+            "south": 22.4,
+            "east": 114.3,
+            "west": 113.5
+        },
+        "news_id": 2070
+    },
+    {
+        "event_time": 1622476800,
+        "scores": [
+            20,
+            30,
+            10,
+            0,
+            15,
+            70
+        ],
+        "bounding_box": {
+            "north": 29.0,
+            "south": 27.0,
+            "east": -13.0,
+            "west": -17.0
+        },
+        "news_id": 2069
+    },
+    {
+        "event_time": 1623304800,
+        "scores": [
+            0,
+            10,
+            0,
+            0,
+            20,
+            0
+        ],
+        "bounding_box": {
+            "north": 56.47,
+            "south": 56.45,
+            "east": 10.05,
+            "west": 10.03
+        },
+        "news_id": 2068
+    },
+    {
+        "event_time": 1623628876,
+        "scores": [
+            30,
+            10,
+            40,
+            20,
+            25,
+            90
+        ],
+        "bounding_box": {
+            "north": 30.0,
+            "south": 25.0,
+            "east": -88.0,
+            "west": -97.0
+        },
+        "news_id": 2062
+    },
+    {
+        "event_time": 1623197505,
+        "scores": [
+            20,
+            85,
+            90,
+            10,
+            0,
+            95
+        ],
+        "bounding_box": {
+            "north": 33.8,
+            "south": 33.6,
+            "east": -118.1,
+            "west": -118.3
+        },
+        "news_id": 2061
+    },
+    {
+        "event_time": 1622044800,
+        "scores": [
+            10,
+            30,
+            70,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 13.1,
+            "south": 12.9,
+            "east": 100.95,
+            "west": 100.8
+        },
+        "news_id": 2059
+    },
+    {
+        "event_time": 1623686400,
+        "scores": [
+            30,
+            20,
+            70,
+            10,
+            10,
+            90
+        ],
+        "bounding_box": {
+            "north": 22.4,
+            "south": 22.2,
+            "east": 114.2,
+            "west": 114.0
+        },
+        "news_id": 2051
+    },
+    {
+        "event_time": 1623711676,
+        "scores": [
+            0,
+            0,
+            0,
+            0,
+            10,
+            10
+        ],
+        "bounding_box": {
+            "north": 50.37,
+            "south": 41.95,
+            "east": -4.14,
+            "west": -70.67
+        },
+        "news_id": 2045
+    },
+    {
+        "event_time": 1624193507,
+        "scores": [
+            20,
+            70,
+            10,
+            30,
+            60,
+            75
+        ],
+        "bounding_box": {
+            "north": -23.9,
+            "south": -24.0,
+            "east": -46.25,
+            "west": -46.4
+        },
+        "news_id": 2042
+    },
+    {
+        "event_time": 1624316440,
+        "scores": [
+            50,
+            60,
+            80,
+            0,
+            0,
+            90
+        ],
+        "bounding_box": {
+            "north": 28.0,
+            "south": 20.0,
+            "east": 120.0,
+            "west": 109.0
+        },
+        "news_id": 2039
+    },
+    {
+        "event_time": 1623772800,
+        "scores": [
+            20,
+            70,
+            0,
+            0,
+            0,
+            80
+        ],
+        "bounding_box": {
+            "north": 36.8956,
+            "south": 36.6956,
+            "east": 34.7299,
+            "west": 34.5299
+        },
+        "news_id": 2038
+    },
+    {
+        "event_time": 1624323915,
+        "scores": [
+            30,
+            50,
+            40,
+            0,
+            0,
+            100
+        ],
+        "bounding_box": {
+            "north": 20.0,
+            "south": 5.0,
+            "east": 105.0,
+            "west": 97.0
+        },
+        "news_id": 2037
+    },
+    {
+        "event_time": 1624377600,
+        "scores": [
+            70,
+            85,
+            10,
+            75,
+            60,
+            80
+        ],
+        "bounding_box": {
+            "north": 11.06,
+            "south": 10.86,
+            "east": -74.68,
+            "west": -74.88
+        },
+        "news_id": 2033
+    },
+    {
+        "event_time": 1624578335,
+        "scores": [
+            10,
+            40,
+            20,
+            10,
+            0,
+            80
+        ],
+        "bounding_box": {
+            "north": 53.55,
+            "south": 49.48,
+            "east": 9.99,
+            "west": 0.12
+        },
+        "news_id": 2027
+    },
+    {
+        "event_time": 1624377600,
+        "scores": [
+            10,
+            70,
+            0,
+            0,
+            30,
+            90
+        ],
+        "bounding_box": {
+            "north": 17.98,
+            "south": 17.95,
+            "east": -76.75,
+            "west": -76.8
+        },
+        "news_id": 2024
+    }
+]
