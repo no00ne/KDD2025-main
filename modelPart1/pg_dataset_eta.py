@@ -8,6 +8,9 @@ from datetime import datetime
 from threading import local
 from typing import Union, Optional
 
+import numpy as np
+
+from utils import compute_hermite_distances
 # pg_dataset_eta.py 顶部（import 区域）
 import psycopg2
 import psycopg2.extras as ext
@@ -41,19 +44,19 @@ class PgETADataset(Dataset):
                  radius_km: float = RADIUS_KM,
                  step: int = STEP_NODE,
                  *,
-                 m_news: int = 0,          # ⇽ 新增：新闻向量维度
-                 use_news: bool = False    # ⇽ 新增：是否启用新闻特征
+                 m_news: int = 0,  # ⇽ 新增：新闻向量维度
+                 use_news: bool = False  # ⇽ 新增：是否启用新闻特征
                  ):
         # ---------------- 基本超参 ----------------
         self.K, self.H, self.R, self.step = k_near, h_ship, radius_km, step
-        self.train_flag  = train
-        self.m_news      = int(m_news)
-        self.use_news    = bool(use_news and m_news > 0)   # 双条件判定
+        self.train_flag = train
+        self.m_news = int(m_news)
+        self.use_news = bool(use_news and m_news > 0)  # 双条件判定
 
         # ---------------- 流式均值 / 方差 ----------------
-        self._num_mu  = defaultdict(float)
+        self._num_mu = defaultdict(float)
         self._num_sig = defaultdict(lambda: 1.0)
-        self._seen    = 0
+        self._seen = 0
 
         # ---------------- 离散列映射 ----------------
         self.type2id = {"<UNK>": 0}
@@ -320,40 +323,48 @@ class PgETADataset(Dataset):
         self._ensure_conn()
 
         # -------- 1. 读取本航次 ----------
-        main  = self._main(self.voy_ids[idx])
+        main = self._main(self.voy_ids[idx])
         nodes = self._nodes(main['id'])
         if len(nodes) <= self.step + 1:
             # 太短 ⇒ 换下一个 idx
             return self.__getitem__((idx + 1) % len(self))
 
         # -------- 2. 采样 A / B ----------
-        A_idx  = random.randrange(1, len(nodes) - self.step, self.step)
+        A_idx = random.randrange(1, len(nodes) - self.step, self.step)
         A_node = nodes[A_idx]
-
-        B_idxs   = list(range(A_idx + self.step, len(nodes), self.step))
-        B_nodes  = [nodes[i] for i in B_idxs]                # n_B 个
+        vA = (A_node.get('speed', 0.0) or 0.0) * 1.852
+        speed_A = torch.tensor(vA, dtype=torch.float)
+        B_idxs = list(range(A_idx + self.step, len(nodes), self.step))
+        B_nodes = [nodes[i] for i in B_idxs]  # n_B 个
 
         # -------- 3. 生成标签 (剩余小时数) ----------
         now = A_node['timestamp'] if isinstance(A_node['timestamp'], datetime) \
-              else datetime.fromisoformat(str(A_node['timestamp']))
+            else datetime.fromisoformat(str(A_node['timestamp']))
         end_time = main['end_time'] if isinstance(main['end_time'], datetime) \
-                   else datetime.fromisoformat(str(main['end_time']))
+            else datetime.fromisoformat(str(main['end_time']))
         label = torch.tensor((end_time - now).total_seconds() / 3600.0,
                              dtype=torch.float)
 
         # -------- 4. A-序列 ----------
-        A_raw = build_raw_seq_tensor(nodes[:A_idx + 1])            # (T_A,7)
+        A_raw = build_raw_seq_tensor(nodes[:A_idx + 1])  # (T_A,7)
         with ThreadPoolExecutor() as exe:
             A_proj_list = list(exe.map(
                 lambda B: build_seq_tensor(nodes[:A_idx + 1], B),
-                B_nodes))                                          # n_B × (T_A,7)
+                B_nodes))  # n_B × (T_A,7)
 
         # A_stat：把 “未来信息” 删掉后转 16-维
         main_mask = main.copy()
-        main_mask['end_time'] = None        # 不泄露终点
+        main_mask['end_time'] = None  # 不泄露终点
         main_mask.pop('dur_hours', None)
-        A_stat = self._main_to_tensor(main_mask)                    # (16,)
+        A_stat = self._main_to_tensor(main_mask)  # (16,)
 
+        # 4.5 计算弧长 (n_B,)
+        lats = np.array([A_node['latitude']] + [b['latitude'] for b in B_nodes])
+        lons = np.array([A_node['longitude']] + [b['longitude'] for b in B_nodes])
+        crs = np.array([A_node.get('course', 0.0)] + [b.get('course', 0.0) for b in B_nodes])
+
+        dist_km = compute_hermite_distances(lats, lons, crs) / 1000.0  # (n_B,)
+        dist_seg = torch.tensor(dist_km, dtype=torch.float)
         # ==================================================================
         # 5. 同船历史（H 条） → ship_*
         # ==================================================================
@@ -366,19 +377,19 @@ class PgETADataset(Dataset):
         ship_ids = [r['id'] for r in self._fetchall(
             sql_hist, (main['mmsi'], main['id'], main['start_time'], self.H))]
         ship_nodes = {sid: self._nodes(sid) for sid in ship_ids}
-        ship_mains = {sid: self._main(sid)  for sid in ship_ids}
+        ship_mains = {sid: self._main(sid) for sid in ship_ids}
 
-        ship_raw  = [build_raw_seq_tensor(ship_nodes[s]) for s in ship_ids]        # H × (T,7)
-        ship_stat_vec = [self._main_to_tensor(ship_mains[s]) for s in ship_ids]    # H × (16,)
+        ship_raw = [build_raw_seq_tensor(ship_nodes[s]) for s in ship_ids]  # H × (T,7)
+        ship_stat_vec = [self._main_to_tensor(ship_mains[s]) for s in ship_ids]  # H × (16,)
 
         def _proj_ship(B_ref):
-            return [build_seq_tensor(ship_nodes[s], B_ref) for s in ship_ids]      # list[H]
+            return [build_seq_tensor(ship_nodes[s], B_ref) for s in ship_ids]  # list[H]
 
         with ThreadPoolExecutor() as exe:
-            ship_proj_list = list(exe.map(_proj_ship, B_nodes))   # n_B × H × (T,7)
+            ship_proj_list = list(exe.map(_proj_ship, B_nodes))  # n_B × H × (T,7)
 
-        ship_raw_list   = [ship_raw]       * len(B_nodes)
-        ship_stats_list = [ship_stat_vec]  * len(B_nodes)
+        ship_raw_list = [ship_raw] * len(B_nodes)
+        ship_stats_list = [ship_stat_vec] * len(B_nodes)
 
         # ==================================================================
         # 6. 邻船 batch 查询 → near_*
@@ -390,34 +401,34 @@ class PgETADataset(Dataset):
             raw, proj, stat_vec, dxy, dcs = [], [], [], [], []
             for r in rows:
                 vid2 = r['vid']
-                raw .append(build_raw_seq_tensor(self._nodes(vid2)))
+                raw.append(build_raw_seq_tensor(self._nodes(vid2)))
                 proj.append(build_seq_tensor(self._nodes(vid2), B_ref))
-                stat_vec.append(self._main_to_tensor(r))          # (16,)
+                stat_vec.append(self._main_to_tensor(r))  # (16,)
                 dx, dy = latlon_to_local(
                     B_ref['latitude'], B_ref['longitude'],
                     B_ref.get('course', 0.0),
                     r['latitude'], r['longitude'])
-                θ  = math.radians(abs((r.get('course') or 0) - (B_ref.get('course') or 0)))
+                θ = math.radians(abs((r.get('course') or 0) - (B_ref.get('course') or 0)))
                 dxy.append([dx, dy])
                 dcs.append([math.cos(θ), math.sin(θ)])
-            while len(raw) < self.K:   # 占位补齐
-                raw .append(torch.zeros(1,7))
-                proj.append(torch.zeros(1,7))
+            while len(raw) < self.K:  # 占位补齐
+                raw.append(torch.zeros(1, 7))
+                proj.append(torch.zeros(1, 7))
                 stat_vec.append(torch.zeros(16))
-                dxy .append([0.,0.])
-                dcs .append([1.,0.])
+                dxy.append([0., 0.])
+                dcs.append([1., 0.])
             return raw, proj, stat_vec, torch.tensor(dxy), torch.tensor(dcs)
 
         near_raw_list, near_proj_list, near_stats_list, Δxy, Δcs = [], [], [], [], []
         with ThreadPoolExecutor() as exe:
             for r, p, s, dx, dc in exe.map(_process_near, zip(B_nodes, near_rows_list)):
-                near_raw_list .append(r)
+                near_raw_list.append(r)
                 near_proj_list.append(p)
                 near_stats_list.append(s)
                 Δxy.append(dx)
                 Δcs.append(dc)
-        delta_xy = torch.stack(Δxy)         # (n_B,K,2)
-        delta_cs = torch.stack(Δcs)         # (n_B,K,2)
+        delta_xy = torch.stack(Δxy)  # (n_B,K,2)
+        delta_cs = torch.stack(Δcs)  # (n_B,K,2)
 
         # ==================================================================
         # 7. B 点 6-维周期特征
@@ -426,36 +437,35 @@ class PgETADataset(Dataset):
         for B in B_nodes:
             sh, ch = encode_time(B['timestamp'])
             ts = B['timestamp'] if isinstance(B['timestamp'], datetime) \
-                 else datetime.fromisoformat(str(B['timestamp']))
+                else datetime.fromisoformat(str(B['timestamp']))
             wd = ts.weekday()
-            sw, cw = math.sin(2*math.pi*wd/7), math.cos(2*math.pi*wd/7)
+            sw, cw = math.sin(2 * math.pi * wd / 7), math.cos(2 * math.pi * wd / 7)
             cr = B.get('course', 0.0)
             sc, cc = math.sin(math.radians(cr)), math.cos(math.radians(cr))
             B6.append(torch.tensor([sh, ch, sw, cw, sc, cc], dtype=torch.float))
-        B6_list = torch.stack(B6)            # (n_B,6)
+        B6_list = torch.stack(B6)  # (n_B,6)
 
         # ==================================================================
         # 8. 打包返回
         # ==================================================================
         return {
-            "A_raw":            A_raw,              # (T_A, 7)
-            "A_proj_list":      A_proj_list,        # list[n_B] of (T_A,7)
-            "A_stat":           A_stat,             # (16,)  ← 已 _main_to_tensor
+            "A_raw": A_raw,  # (T_A, 7)
+            "A_proj_list": A_proj_list,  # list[n_B] of (T_A,7)
+            "A_stat": A_stat,  # (16,)  ← 已 _main_to_tensor
             # ---------- 历史同船 ----------
-            "ship_raw_list":    ship_raw_list,      # list[n_B] of list[H] (T,7)
-            "ship_stats_list":  ship_stats_list,    # list[n_B] of list[H] (16,)
-            "ship_proj_list":   ship_proj_list,     # list[n_B] of list[H] (T,7)
+            "ship_raw_list": ship_raw_list,  # list[n_B] of list[H] (T,7)
+            "ship_stats_list": ship_stats_list,  # list[n_B] of list[H] (16,)
+            "ship_proj_list": ship_proj_list,  # list[n_B] of list[H] (T,7)
             # ---------- 邻船 ----------
-            "near_raw_list":    near_raw_list,      # list[n_B] of list[K] (T,7)
-            "near_stats_list":  near_stats_list,    # list[n_B] of list[K] (16,)
-            "near_proj_list":   near_proj_list,     # list[n_B] of list[K] (T,7)
+            "near_raw_list": near_raw_list,  # list[n_B] of list[K] (T,7)
+            "near_stats_list": near_stats_list,  # list[n_B] of list[K] (16,)
+            "near_proj_list": near_proj_list,  # list[n_B] of list[K] (T,7)
             # ---------- 几何 / 时序 ----------
-            "delta_xy":         delta_xy,           # (n_B, K, 2)  km  ξ,η
-            "delta_cs":         delta_cs,           # (n_B, K, 2)  cos θ,sin θ
-            "B6_list":          B6_list,            # (n_B, 6)     sin/cos 周期
-            "label":            label               # ()  剩余小时数 (float)
-        }    # news_raw:(n_B,m,(news))
-            # news_proj:(n_B,m,(news))
-
-
-
+            "delta_xy": delta_xy,  # (n_B, K, 2)  km  ξ,η
+            "delta_cs": delta_cs,  # (n_B, K, 2)  cos θ,sin θ
+            "B6_list": B6_list,  # (n_B, 6)     sin/cos 周期
+            "label": label,  # ()  剩余小时数 (float)
+            "dist_seg": dist_seg,
+            "speed_A": speed_A
+        }  # news_raw:(n_B,m,(news))
+        # news_proj:(n_B,m,(news))

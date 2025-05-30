@@ -420,7 +420,14 @@ def collate_fn_eta(batch: list[dict]):
     for i in range(B):
         dxy_pad[i, : batch[i]["delta_xy"].shape[0]] = batch[i]["delta_xy"]
         dcs_pad[i, : batch[i]["delta_cs"].shape[0]] = batch[i]["delta_cs"]
+    # ---------- dist_seg ----------
+    n_B_max = near_raw_pad.shape[1]
+    dist_pad = torch.zeros(len(batch), n_B_max)
 
+    for i, b in enumerate(batch):
+        dist_pad[i, : b["dist_seg"].numel()] = b["dist_seg"]
+    # ---------- speed_A ----------
+    speedA_pad = torch.stack([b["speed_A"] for b in batch])  # (B,)
     # ---------- B6 ----------
     B6_pad = torch.zeros(B, n_B_max, 6)
     for i, b in enumerate(batch):
@@ -443,6 +450,8 @@ def collate_fn_eta(batch: list[dict]):
         ship_raw_pad,     ship_proj_pad,     ship_len,     ship_stat_pad,
         near_raw_pad,     near_proj_pad,     near_len,     near_stat_pad,
         dxy_pad,          dcs_pad,
+        dist_pad,
+        speedA_pad,
         B6_pad,
         label_pad,
         news_pad
@@ -486,6 +495,85 @@ def evaluate(model, embedder, loader, device, criterion, amp=True):
     embedder.train()
     return tot / cnt
 
+@torch.no_grad()
+def eval_eta(mdl,
+             emb,
+             val_dl,
+             device: torch.device,
+             criterion,
+             use_amp: bool = True) -> float:
+    """
+    Run one full validation epoch and return the mean loss / metric.
+
+    Parameters
+    ----------
+    mdl : torch.nn.Module
+        ETA predictor (eta_eta_predictor.EtaETAPredictor).
+    emb : torch.nn.Module
+        Shared point-encoder (eta_speed_model.SpeedPredictor 之类).
+    val_dl : torch.utils.data.DataLoader
+        Validation dataloader built with collate_fn_eta.
+    device : torch.device
+    criterion : callable
+        Loss / metric (如 nn.L1Loss(reduction='mean') 或自定义 MARE).
+    use_amp : bool, default False
+        Mixed-precision evaluation on GPU.
+
+    Returns
+    -------
+    float
+        Mean validation loss over the whole val_dl.
+    """
+    mdl.eval()
+    emb.eval()
+
+    tot_loss = 0.0
+    n_seen   = 0
+
+    with torch.no_grad():
+        for batch in val_dl:
+            # ───────── unpack & send to device ────────────────────────────────
+            (A_raw, A_proj, A_len, A_stat,
+             ship_raw, ship_proj, ship_len, ship_stat,
+             near_raw, near_proj, near_len, near_stat,
+             dxy, dcs, dist_seg,speed_A,
+             B6, label,
+             news_feat) = batch
+
+            tensors = [A_raw, A_proj, A_len, A_stat,
+                       ship_raw, ship_proj, ship_len, ship_stat,
+                       near_raw, near_proj, near_len, near_stat,
+                       dxy, dcs, dist_seg,speed_A,
+                       B6, label]
+
+            tensors = [t.to(device, non_blocking=True) for t in tensors]
+            (A_raw, A_proj, A_len, A_stat,
+             ship_raw, ship_proj, ship_len, ship_stat,
+             near_raw, near_proj, near_len, near_stat,
+             dxy, dcs, dist_seg,
+             B6, label) = tensors
+
+            news_feat = news_feat.to(device, non_blocking=True) if news_feat is not None else None
+
+            # ───────── forward ────────────────────────────────────────────────
+            with autocast(device_type='cuda', enabled=use_amp):
+                A_emb    = emb(A_raw, A_proj, A_len, A_stat)
+                ship_emb = emb(ship_raw, ship_proj, ship_len, ship_stat)
+                near_emb = emb(near_raw, near_proj, near_len, near_stat)
+
+                news_emb = news_feat  # 若模型内部未用可直接传 None
+                pred = mdl(B6, A_emb, near_emb, dxy, dcs,
+                           ship_emb, dist_seg,speed_A, news_emb).squeeze(-1)
+
+                loss = criterion(pred, label)
+
+            # ───────── accumulate ─────────────────────────────────────────────
+            tot_loss += loss.item() * label.size(0)
+            n_seen   += label.size(0)
+
+    mdl.train()
+    emb.train()
+    return tot_loss / n_seen
 
 def compute_hermite_distances(lats, lons, courses, R=6371000.0):
     """

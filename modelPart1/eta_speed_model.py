@@ -76,7 +76,7 @@ class LearnablePosEncoding(nn.Module):
 # ------------------------- NodeAEmbedder -------------------------
 class NodeAEmbedder(nn.Module):
     """
-    🚢 轨迹序列 → 向量 (d_model)。
+     轨迹序列 → 向量 (d_model)。
     采用 1×Linear + 可学习位置编码 + TransformerEncoder + 有效步长平均池化。
     """
 

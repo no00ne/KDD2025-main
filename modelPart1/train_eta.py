@@ -14,6 +14,7 @@ train.py
 import os
 
 from modelPart1.eta_speed_model import NewsEmbedder
+from modelPart1.utils import eval_eta
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
@@ -109,7 +110,7 @@ def main(cfg):
                 (A_raw, A_proj, A_len, A_stat,
                  ship_raw, ship_proj, ship_len, ship_stat,
                  near_raw, near_proj, near_len, near_stat,
-                 dxy, dcs, B6, label,
+                 dxy, dcs, dist_seg,speed_A, B6, label,
                  news_feat) = batch
 
                 A_raw = A_raw.to(device);
@@ -126,6 +127,8 @@ def main(cfg):
                 near_stat = near_stat.to(device)
                 dxy = dxy.to(device);
                 dcs = dcs.to(device)
+                dist_seg = dist_seg.to(device)
+                speed_A = speed_A.to(device)
                 B6 = B6.to(device);
                 label = label.to(device)
                 if cfg.use_news:
@@ -169,7 +172,9 @@ def main(cfg):
                         news_emb = news_enc(news_feat).mean(dim=1)  # (B,128)
                     else:
                         news_emb = torch.zeros(A_emb.shape[0], 128, device=A_emb.device)
-                    pred = mdl(B6, A_emb, near_emb, dxy, dcs, ship_emb).squeeze(-1)  # (B,)
+                    pred = mdl(B6, A_emb, near_emb, dxy, dcs,
+                               ship_emb, dist_seg,speed_A,
+                               news_emb).squeeze(-1)
                     loss = criterion(pred, label)
 
                 scaler.scale(loss).backward()
@@ -186,7 +191,7 @@ def main(cfg):
 
         # Validation
         with Timer("validation"):
-            val_mare = evaluate(mdl, emb, val_dl, device, criterion, cfg.amp)
+            val_mare = eval_eta(mdl, emb, val_dl, device, criterion, cfg.amp)
         if cfg.scheduler == 'plateau':
             scheduler.step(val_mare)
         else:
