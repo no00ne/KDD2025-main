@@ -539,7 +539,7 @@ up_times = up_arr[:,0]
 pr_times = pr_arr[:,0]
 # ------------------------------------
 
-def get_node_related_news_tensor(nodes, max_num=10, projection=False):
+def get_node_related_news_tensor(nodes, max_num=10, projection=True):
     """
     input:
       nodes: 节点列表, 每个节点是一个字典, 包含 timestamp, longitude, latitude 字段
