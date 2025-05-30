@@ -542,7 +542,7 @@ pr_times = pr_arr[:,0]
 def get_node_related_news_tensor(nodes, max_num=10, projection=False):
     """
     Faster implementation for large-scale scenarios.
-    Returns: torch.Tensor shape (idx_of_nodes, idex_of_news, 7)
+    Returns: torch.Tensor shape (idx_of_nodes, idx_of_news, 7); 7: 1(event_time 或差值) + 6(scores)
     """
     num_nodes = len(nodes)
     out = torch.zeros((num_nodes, max_num, 7), dtype=torch.float32)
