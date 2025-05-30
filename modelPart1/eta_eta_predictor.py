@@ -3,6 +3,25 @@ import torch
 import torch.nn as nn
 from eta_speed_model import NearAggregator
 
+class NewsEncoder(nn.Module):
+    """
+    简单示例：将每条新闻的 BERT-CLS(768) → 128；
+    对同一个 B 参考点的多条新闻做 mean-pooling。
+    """
+    def __init__(self, d_in: int = 768, d_out: int = 128):
+        super().__init__()
+        self.proj = nn.Sequential(
+            nn.Linear(d_in, d_out),
+            nn.GELU(),
+            nn.Linear(d_out, d_out)
+        )
+
+    def forward(self, news_feat: torch.Tensor):    # (B,nB,M,d_in)
+        # 先对 M 篇取 mean => (B,nB,d_in)
+        news_mean = news_feat.mean(dim=-2)
+        # 再线性映射 => (B,nB,d_out)
+        return self.proj(news_mean)
+
 class ETAPredictorNet(nn.Module):
     """
     ETA predictor network: directly predicts ETA (remaining hours) from given context.

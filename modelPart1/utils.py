@@ -429,14 +429,23 @@ def collate_fn_eta(batch: list[dict]):
     # ---------- label ----------
     label_pad = torch.stack([b["label"] for b in batch])                   # (B,)
 
-    # 输出 —— 可按训练循环需要调整顺序
+    news_pad = None
+    if batch[0].get("news_feat") is not None:
+        d_in = batch[0]["news_feat"].shape[-1]
+        nB = max(b["news_feat"].shape[1] for b in batch)
+        M = max(b["news_feat"].shape[2] for b in batch)
+        news_pad = torch.zeros(len(batch), nB, M, d_in)
+        for i, b in enumerate(batch):
+            nb, m = b["news_feat"].shape[1:3]
+            news_pad[i, :nb, :m] = b["news_feat"]
     return (
         A_raw_pad,        A_proj_pad,        A_len,        A_stat_pad,
         ship_raw_pad,     ship_proj_pad,     ship_len,     ship_stat_pad,
         near_raw_pad,     near_proj_pad,     near_len,     near_stat_pad,
         dxy_pad,          dcs_pad,
         B6_pad,
-        label_pad
+        label_pad,
+        news_pad
     )
 
 

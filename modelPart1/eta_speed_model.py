@@ -9,21 +9,43 @@ import math
 import torch
 import torch.nn as nn
 
-class FuseBlock(nn.Module):
-    """
-    将 raw / proj 两个 128-d 向量 → 单一 128-d。
-    当前实现：先 concat → 256 → GELU → 128。
-    """
-    def __init__(self, d_in_each: int = 128, d_out: int = 128):
-        super().__init__()
-        self.lin = nn.Sequential(
-            nn.Linear(d_in_each * 2, d_out * 2),
-            nn.GELU(),
-            nn.Linear(d_out * 2, d_out)
-        )
 
-    def forward(self, x_raw: torch.Tensor, x_proj: torch.Tensor):
-        return self.lin(torch.cat([x_raw, x_proj], dim=-1))  # (...,128)
+class NewsEmbedder(nn.Module):
+    """
+    预留：新闻文本 / 多模态新闻特征的嵌入器。
+    目前仅占位，forward 直接抛出 NotImplementedError。
+    你可以在此处接入任意 BERT / CLIP / LLM + Pooling 等。
+    """
+
+    def __init__(self, d_in: int = 768, d_out: int = 128):
+        super().__init__()
+        # >>> 在这里实现你的投射 / pooling 层 <<<
+        raise NotImplementedError("请在 NewsEmbedder 内部实现具体的嵌入逻辑")
+
+    def forward(self, news_feat: torch.Tensor) -> torch.Tensor:
+        """
+        news_feat : (B, nB, M, d_in)
+          B   —— batch
+          nB  —— 每个参考点 B 对应的新闻条数（可变，已在 collate 中 pad）
+          M   —— 单条新闻的 token / patch / frame 维度（可变）
+        返回 : (B, nB, d_out)
+        """
+        raise NotImplementedError
+
+
+class FuseBlock(nn.Module):
+    """ raw-128 与 proj-128 → 128  """
+
+    def __init__(self, d=128):
+        super().__init__()
+        self.fuse = nn.Sequential(
+            nn.Linear(d * 2, d * 2),
+            nn.GELU(),
+            nn.Linear(d * 2, d))
+
+    def forward(self, x_raw, x_proj):  # (...,d) × 2
+        return self.fuse(torch.cat([x_raw, x_proj], dim=-1))
+
 
 # ------------------------- 位置编码 -------------------------
 class LearnablePosEncoding(nn.Module):
@@ -120,29 +142,30 @@ class StaticEmbedder(nn.Module):
         return self.mlp(x)  # (N,d_emb)
 
 
-# ------------------------- GroupEmbedder -------------------------
 class GroupEmbedder(nn.Module):
     """
-    公用编码器：把 **序列轨迹 + 静态特征** 合并成统一的 128-维向量。
-    - 对于 A / near / ship 都复用同一份权重，保持语义一致。
-    - 输入 **必须** 按顺序给 `(seq, lengths, stat)`。
+    (seq_raw , seq_proj , len , stat) → (N , 128)
     """
 
     def __init__(self,
                  d_seq_in: int = 7,
-                 d_stat_in: int = 16,
-                 d_model: int = 64):
+                 d_stat_in: int = 16):
         super().__init__()
-        self.node = NodeAEmbedder(d_in=d_seq_in, d_model=d_model)
+        d_model = 64
+        self.enc = NodeAEmbedder(d_in=d_seq_in, d_model=d_model)
+        self.fuse = FuseBlock(d=d_model)
         self.stat = StaticEmbedder(d_in=d_stat_in, d_emb=d_model)
 
     def forward(self,
-                seq: torch.Tensor,  # (N,T,7)
+                seq_raw: torch.Tensor,  # (N,T,7)
+                seq_proj: torch.Tensor,  # (N,T,7)
                 lengths: torch.Tensor,  # (N,)
                 stat: torch.Tensor):  # (N,16)
-        h_seq = self.node(seq, lengths)  # (N,64)
+        h_raw = self.enc(seq_raw, lengths)
+        h_proj = self.enc(seq_proj, lengths)
+        h_traj = self.fuse(h_raw, h_proj)  # (N,64)
         h_stat = self.stat(stat)  # (N,64)
-        return torch.cat([h_seq, h_stat], dim=-1)  # (N,128)
+        return torch.cat([h_traj, h_stat], dim=-1)  # (N,128)
 
 
 class NearAggregator(nn.Module):
