@@ -530,10 +530,9 @@ UN_PRED_NEWS = pd.read_csv("news_data/unpredictable.csv")
 PRED_NEWS    = pd.read_csv("news_data/predictable.csv")
 
 # 预先提取常用列为 numpy 数组，加快后续广播计算
-up_arr  = UN_PRED_NEWS[["event_time","north","south","east","west",
-                        *[f"score_{i}" for i in range(6)]]].values
-pr_arr  = PRED_NEWS [ ["event_time","north","south","east","west",
-                        *[f"score_{i}" for i in range(6)]]].values
+cols = ["event_time", "north", "south", "east", "west"] + [f"score_{i}" for i in range(6)]
+up_arr  = UN_PRED_NEWS[cols].values
+pr_arr  = PRED_NEWS [cols].values
 
 up_times = up_arr[:,0]
 pr_times = pr_arr[:,0]
@@ -546,7 +545,7 @@ def get_node_related_news_tensor(nodes, max_num=10, projection=True):
       max_num: 每个节点最多选择的新闻数量
       projection: 是否使用 event_time - node_time 的时间差（投影）
     return:
-      torch.Tensor shape (idx_of_nodes, idx_of_news, 7); 7: 1(event_time 或差值) + 6(scores)
+      torch.Tensor shape (idx_of_nodes, idx_of_news, 8); 8: 2(event_time, delta_t) + 6(scores)
     """
     num_nodes = len(nodes)
     out = torch.zeros((num_nodes, max_num, 7), dtype=torch.float32)
@@ -555,28 +554,27 @@ def get_node_related_news_tensor(nodes, max_num=10, projection=True):
         t, lat, lon = node["timestamp"], node["latitude"], node["longitude"]
 
         # --- 时间切片（利用 searchsorted） ---
-        up_cut = np.searchsorted(up_times, t, side="right")
-        pr_cut = np.searchsorted(pr_times, t, side="left")
-        up_slice = up_arr[:up_cut]
-        pr_slice = pr_arr[pr_cut:]
+        up_cut = np.searchsorted(up_times, t, side="right")   # ≤ node_time
+        pr_cut = np.searchsorted(pr_times, t, side="left")    #  > node_time
+        slice_arr = np.vstack((up_arr[:up_cut], pr_arr[pr_cut:]))
 
-        # --- 合并后做空间过滤（numpy 广播） ---
-        slice_arr = np.vstack((up_slice, pr_slice))
         if slice_arr.size == 0:
             continue
 
-        lat_ok = (slice_arr[:,1] >= lat) & (slice_arr[:,2] <= lat)
-        lon_ok = (slice_arr[:,3] >= lon) & (slice_arr[:,4] <= lon)
+        # ---------- 空间过滤 ----------
+        lat_ok = (slice_arr[:, 1] >= lat) & (slice_arr[:, 2] <= lat)
+        lon_ok = (slice_arr[:, 3] >= lon) & (slice_arr[:, 4] <= lon)
         hits   = slice_arr[lat_ok & lon_ok]
 
         if hits.shape[0]:
-            # 取前 max_num 条
             hits = hits[:max_num]
-
-            # event_time 或差值
-            times = hits[:,0:1] - t if projection else hits[:,0:1]
-            scores = hits[:,5:11]     # 6 列 score
-            tensor = torch.tensor(np.hstack((times, scores)), dtype=torch.float32)
+            times    = hits[:, 0:1]
+            delta_t  = times - t
+            scores   = hits[:, 5:11]
+            tensor   = torch.tensor(
+                np.hstack((times, delta_t, scores)),
+                dtype=torch.float32
+            )
 
             out[idx, :tensor.shape[0], :] = tensor
 
