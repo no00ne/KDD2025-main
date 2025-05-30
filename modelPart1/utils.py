@@ -541,8 +541,12 @@ pr_times = pr_arr[:,0]
 
 def get_node_related_news_tensor(nodes, max_num=10, projection=False):
     """
-    Faster implementation for large-scale scenarios.
-    Returns: torch.Tensor shape (idx_of_nodes, idx_of_news, 7); 7: 1(event_time 或差值) + 6(scores)
+    input:
+      nodes: 节点列表, 每个节点是一个字典, 包含 timestamp, longitude, latitude 字段
+      max_num: 每个节点最多选择的新闻数量
+      projection: 是否使用 event_time - node_time 的时间差（投影）
+    return:
+      torch.Tensor shape (idx_of_nodes, idx_of_news, 7); 7: 1(event_time 或差值) + 6(scores)
     """
     num_nodes = len(nodes)
     out = torch.zeros((num_nodes, max_num, 7), dtype=torch.float32)
