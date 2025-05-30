@@ -13,6 +13,8 @@ train.py
 """
 import os
 
+from modelPart1.eta_speed_model import NewsEmbedder
+
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 import argparse
@@ -76,7 +78,7 @@ def main(cfg):
     # ---------- Model ----------
     emb = GroupEmbedder(cfg.m_news, cfg.use_news).to(device)  # 修改构造函数以接收新闻维度
     mdl = ETAPredictorNet(cfg.m_news, cfg.use_news).to(device)
-
+    news_enc = NewsEmbedder(d_in=768, d_out=128).to(device)
     params = list(emb.parameters()) + list(mdl.parameters())
     optim = Adam(params, lr=cfg.lr, weight_decay=cfg.wd)
     scheduler = (
@@ -107,7 +109,8 @@ def main(cfg):
                 (A_raw, A_proj, A_len, A_stat,
                  ship_raw, ship_proj, ship_len, ship_stat,
                  near_raw, near_proj, near_len, near_stat,
-                 dxy, dcs, B6, label, *news_optional) = batch
+                 dxy, dcs, B6, label,
+                 news_feat) = batch
 
                 A_raw = A_raw.to(device);
                 A_proj = A_proj.to(device)
@@ -126,7 +129,7 @@ def main(cfg):
                 B6 = B6.to(device);
                 label = label.to(device)
                 if cfg.use_news:
-                    news_feat = news_optional[0].to(device)  # (B,nB,m_news) 或 (B,m_news)
+                    news_feat = news_feat[0].to(device)  # (B,nB,m_news) 或 (B,m_news)
                 else:
                     news_feat = None
 
@@ -137,22 +140,35 @@ def main(cfg):
                 # ---------------- forward ----------------
                 ctx = autocast(device_type='cuda', enabled=cfg.amp) if _AMP_NEW else autocast(enabled=cfg.amp)
                 with ctx:
-                    A_emb = emb(A_raw, A_proj, A_len, A_stat, news_feat)  # (B,128)
+                    A_emb = emb(A_raw, A_proj, A_len, A_stat)  # (B,128)
                     near_emb = emb(
                         near_raw.reshape(B * nB * K, Tn, 7),
                         near_proj.reshape(B * nB * K, Tn, 7),
                         near_len.reshape(B * nB * K),
                         near_stat.reshape(B * nB * K, -1),
-                        news_feat.repeat_interleave(nB * K, 0) if cfg.use_news else None
                     ).view(B, nB, K, -1)  # (B,nB,K,128)
-                    ship_emb = emb(
-                        ship_raw.reshape(B * nB * H, Ts, 7),
-                        ship_proj.reshape(B * nB * H, Ts, 7),
-                        ship_len.reshape(B * nB * H),
-                        ship_stat.reshape(B * nB * H, -1),
-                        news_feat.repeat_interleave(nB * H, 0) if cfg.use_news else None
-                    ).view(B, nB, H, -1)  # (B,nB,H,128)
+                    # ---------- 2)  Ship-side ------------
+                    # ❶ 仅取 **第 0 个 B_ref** 的 ship_raw / proj / stat 作为“基准”         ↓↓↓
+                    ship_raw_base = ship_raw[:, 0]  # (B , H , Ts , 7)
+                    ship_proj_base = ship_proj[:, 0]  # (B , H , Ts , 7)   ← 若只缓存 raw，可删掉
+                    ship_len_base = ship_len[:, 0]  # (B , H)
+                    ship_stat_base = ship_stat[:, 0]  # (B , H , 16)
 
+                    # ❷ 摊平成一次前向：(B*H , Ts , 7) / (B*H , 16)
+                    ship_emb_base = emb(
+                        ship_raw_base.reshape(B * H, Ts, 7),
+                        ship_proj_base.reshape(B * H, Ts, 7),  # 若不用 proj，这里传 None
+                        ship_len_base.reshape(B * H),
+                        ship_stat_base.reshape(B * H, -1),
+                    ).view(B, H, -1)  # ➜ (B , H , 128)
+
+                    # ❸ broadcast 到 nB 维——**不复制显存，只建 view**
+                    ship_emb = ship_emb_base.unsqueeze(1).expand(-1, nB, -1, -1)  # (B , nB , H , 128)
+
+                    if news_feat is not None:
+                        news_emb = news_enc(news_feat).mean(dim=1)  # (B,128)
+                    else:
+                        news_emb = torch.zeros(A_emb.shape[0], 128, device=A_emb.device)
                     pred = mdl(B6, A_emb, near_emb, dxy, dcs, ship_emb).squeeze(-1)  # (B,)
                     loss = criterion(pred, label)
 
