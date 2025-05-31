@@ -534,30 +534,25 @@ def compute_hermite_distances(lats, lons, courses, R=6371000.0):
     return dists
 
 
-# -------- 第一次加载脚本时运行 --------
-UN_PRED_NEWS = pd.read_csv("news_data/unpredictable.csv")
-PRED_NEWS    = pd.read_csv("news_data/predictable.csv")
-
-# 预先提取常用列为 numpy 数组，加快后续广播计算
-cols = ["event_time", "north", "south", "east", "west"] + [f"score_{i}" for i in range(6)]
-up_arr  = UN_PRED_NEWS[cols].values
-pr_arr  = PRED_NEWS [cols].values
-
-up_times = up_arr[:,0]
-pr_times = pr_arr[:,0]
-# ------------------------------------
-
-def get_node_related_news_tensor(nodes, max_num=10, projection=True):
+def get_node_related_news_tensor(nodes, UN_PRED_NEWS, PRED_NEWS, max_news_num=10):
     """
     input:
       nodes: 节点列表, 每个节点是一个字典, 包含 timestamp, longitude, latitude 字段
+      UN_PRED_NEWS: pd.read_csv(unpredictable.csv) 的测试集/训练集
+      PRED_NEWS: pd.read_csv(predictable.csv) 的测试集/训练集
       max_num: 每个节点最多选择的新闻数量
-      projection: 是否使用 event_time - node_time 的时间差（投影）
     return:
       torch.Tensor shape (idx_of_nodes, idx_of_news, 8); 8: 2(event_time, delta_t) + 6(scores)
     """
+    cols = ["event_time", "north", "south", "east", "west"] + [f"score_{i}" for i in range(6)]
+    up_arr  = UN_PRED_NEWS[cols].values
+    pr_arr  = PRED_NEWS [cols].values
+
+    up_times = up_arr[:,0]
+    pr_times = pr_arr[:,0]
+
     num_nodes = len(nodes)
-    out = torch.zeros((num_nodes, max_num, 7), dtype=torch.float32)
+    out = torch.zeros((num_nodes, max_news_num, 7), dtype=torch.float32)
 
     for idx, node in enumerate(nodes):
         t, lat, lon = node["timestamp"], node["latitude"], node["longitude"]
