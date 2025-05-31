@@ -9,8 +9,9 @@ from threading import local
 from typing import Union, Optional
 
 import numpy as np
+import pandas as pd
 
-from utils import compute_hermite_distances
+from utils import compute_hermite_distances, get_node_related_news_tensor
 # pg_dataset_eta.py 顶部（import 区域）
 import psycopg2
 import psycopg2.extras as ext
@@ -53,6 +54,35 @@ class PgETADataset(Dataset):
         self.m_news = int(m_news)
         self.use_news = bool(use_news and m_news > 0)  # 双条件判定
 
+        # ---------------- 新闻数据集划分 ----------------
+        if self.use_news:
+            # 读取原始新闻数据
+            up_news = pd.read_csv("news_data/unpredictable.csv")
+            pr_news = pd.read_csv("news_data/predictable.csv")
+            
+            # 按时间戳排序
+            up_news = up_news.sort_values('event_time')
+            pr_news = pr_news.sort_values('event_time')
+            
+            # 计算unpredictable的划分点
+            up_split_idx = int(len(up_news) * 0.8)
+            up_split_time = up_news.iloc[up_split_idx]['event_time']
+            
+            # 划分unpredictable
+            if train:
+                self.UN_PRED_NEWS = up_news.iloc[:up_split_idx]
+            else:
+                self.UN_PRED_NEWS = up_news.iloc[up_split_idx:]
+            
+            # 基于unpredictable的划分时间点划分predictable
+            if train:
+                self.PRED_NEWS = pr_news[pr_news['event_time'] <= up_split_time]
+            else:
+                self.PRED_NEWS = pr_news[pr_news['event_time'] > up_split_time]
+        else:
+            self.UN_PRED_NEWS = None
+            self.PRED_NEWS = None
+
         # ---------------- 流式均值 / 方差 ----------------
         self._num_mu = defaultdict(float)
         self._num_sig = defaultdict(lambda: 1.0)
@@ -88,7 +118,7 @@ class PgETADataset(Dataset):
     def _main_to_tensor(self, main_row: dict) -> torch.Tensor:
         """
         voyage_main → 16-dim 数值向量
-        对于仍在进行的航次，end_* / dur_hours 可能缺失 → 按 0 处理。
+        对于仍在进行的航次, end_* / dur_hours 可能缺失 → 按 0 处理。
         """
 
         # ---------- ① 数值列（8） ----------
@@ -317,7 +347,7 @@ class PgETADataset(Dataset):
           ├ B6_list              :  (n_B, 6)
           └ label                :  剩余小时数 (scalar)
 
-        其中所有 “*_stats_list” 都已是 **16-维张量**，方便后续 batch 堆叠。
+        其中所有 "*"_stats_list" 都已是 **16-维张量**，方便后续 batch 堆叠。
         """
         # -------- 连接 ----------
         self._ensure_conn()
@@ -352,7 +382,7 @@ class PgETADataset(Dataset):
                 lambda B: build_seq_tensor(nodes[:A_idx + 1], B),
                 B_nodes))  # n_B × (T_A,7)
 
-        # A_stat：把 “未来信息” 删掉后转 16-维
+        # A_stat：把 "未来信息" 删掉后转 16-维
         main_mask = main.copy()
         main_mask['end_time'] = None  # 不泄露终点
         main_mask.pop('dur_hours', None)
@@ -446,8 +476,17 @@ class PgETADataset(Dataset):
         B6_list = torch.stack(B6)  # (n_B,6)
 
         # ==================================================================
-        # 8. 打包返回
+        # 8. 新闻特征
         # ==================================================================
+        news_feat = None
+        if self.use_news:
+            # 获取所有B节点的新闻特征
+            news_feat = get_node_related_news_tensor(B_nodes, self.UN_PRED_NEWS, self.PRED_NEWS, max_news_num=self.m_news)
+
+        # ==================================================================
+        # 9. 打包返回
+        # ==================================================================
+
         return {
             "A_raw": A_raw,  # (T_A, 7)
             "A_proj_list": A_proj_list,  # list[n_B] of (T_A,7)
@@ -466,6 +505,7 @@ class PgETADataset(Dataset):
             "B6_list": B6_list,  # (n_B, 6)     sin/cos 周期
             "label": label,  # ()  剩余小时数 (float)
             "dist_seg": dist_seg,
-            "speed_A": speed_A
+            "speed_A": speed_A,
+            "news_feat": news_feat
         }  # news_raw:(n_B,m,(news))
         # news_proj:(n_B,m,(news))
