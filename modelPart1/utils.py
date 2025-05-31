@@ -659,7 +659,7 @@ def get_node_related_news_tensor(nodes, UN_PRED_NEWS, PRED_NEWS, max_news_num=10
         hits   = slice_arr[lat_ok & lon_ok]
 
         if hits.shape[0]:
-            hits = hits[:max_num]
+            hits = hits[:max_news_num]
             times    = hits[:, 0:1]
             delta_t  = times - t
             scores   = hits[:, 5:11]
