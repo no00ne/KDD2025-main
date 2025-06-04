@@ -1,9 +1,7 @@
 import torch
-from eta_speed_model import NearAggregator
+from eta_speed_model import MultiHeadNearAggregator
 
 import torch.nn as nn
-
-from eta_speed_model import NearAggregator
 
 
 class ETAPredictorNet(nn.Module):
@@ -11,7 +9,7 @@ class ETAPredictorNet(nn.Module):
         super().__init__()
         self.use_news = use_news
         self.d_news = d_news
-        self.near_aggr = NearAggregator(d_emb, 64)
+        self.near_aggr = MultiHeadNearAggregator(d_emb, 64, heads)
         self.B_proj = nn.Linear(6, 64)
 
         # 用于把 Bq_f 投影到和 A/near/ship 同维度
@@ -41,12 +39,15 @@ class ETAPredictorNet(nn.Module):
 
         # flatten batch & nB
         B6_f = B6.view(B * nB, -1)  # (B*nB, 6)
-        Bq_f = self.B_proj(B6_f)  # (B*nB, 64)
-        Bq_f = self.q_proj(Bq_f)  # (B*nB, 128)
+        Bq = self.B_proj(B6_f)   # (B*nB, 64)
+        Bq_f = self.q_proj(Bq)   # (B*nB, 128)
 
         # 1) 计算 nearP_f
-        nearP_f = self.near_aggr(near_emb.view(B * nB, K, -1), delta_xy.view(B * nB, K, -1),
-            delta_cs.view(B * nB, K, -1), Bq_f[:, :64]  # 取前 64 维做 attention query
+        nearP_f = self.near_aggr(
+            near_emb.view(B * nB, K, -1),
+            delta_xy.view(B * nB, K, -1),
+            delta_cs.view(B * nB, K, -1),
+            Bq
         )  # (B*nB, 128)
 
         # 2) 计算 shipP_f：对 H 维度做 attention，而不是简单均值
