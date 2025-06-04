@@ -35,7 +35,7 @@ def _one():
 DB_DSN = "dbname=eta_voyage2 user=cxsj host=localhost port=5433"
 K_NEAR = 32  # number of nearby vessels
 H_SHIP = 10  # number of historical voyages (same vessel)
-STEP_NODE = 1  # A sequence sampling step
+STEP_NODE = 32  # Max number of B nodes sampled from a voyage path
 RADIUS_KM = 50.0  # radius for nearby search (km)
 # 单例连接池：min 1, max 32 可按需调整
 _PG_POOL = None
@@ -67,7 +67,7 @@ class PgETADataset(Dataset):
                  k_near: int = K_NEAR,
                  h_ship: int = H_SHIP,
                  radius_km: float = RADIUS_KM,
-                 step: int = STEP_NODE,
+                 step: int = STEP_NODE,  # maximum number of B nodes sampled
                  *,
                  m_news: int = 0,  # ⇽ 新增：新闻向量维度
                  use_news: bool = False  # ⇽ 新增：是否启用新闻特征
@@ -388,7 +388,7 @@ class PgETADataset(Dataset):
         max_trials = len(self.voy_ids)
         trials = 0
 
-        # 循环直到找到一个 len(nodes) > self.step + 1 的合法航次，或尝试次数达到上限
+        # 循环直到找到一个 len(nodes) > 2 的合法航次，或尝试次数达到上限
         while True:
             voyage_id = self.voy_ids[idx]
             t0 = datetime.now()
@@ -406,12 +406,12 @@ class PgETADataset(Dataset):
                 f"节点总数={len(nodes)}, 耗时={(t2 - t1).total_seconds():.3f}s"
             )
 
-            if len(nodes) > self.step + 1:
+            if len(nodes) > 2:
                 # 找到合法的 nodes，跳出循环
                 break
 
             # 否则换下一个索引继续尝试
-            logging.info(f"[步骤1] 节点数不足(step+1)，换下一个索引")
+            logging.info(f"[步骤1] 节点数不足(>2)，换下一个索引")
             trials += 1
             if trials >= max_trials:
                 raise RuntimeError("所有候选航次都太短，无法构建样本。")
@@ -420,14 +420,21 @@ class PgETADataset(Dataset):
 
         # -------- 2. 采样 A / B ----------
         t3 = datetime.now()
-        A_idx = random.randrange(1, len(nodes) - self.step, self.step)
+        # 随机选择 A 节点，保证之后至少还有一个节点可作为 B
+        A_idx = random.randint(1, len(nodes) - 2)
         A_node = nodes[A_idx]
         vA = (A_node.get('speed', 0.0) or 0.0)
         speed_A = torch.tensor(vA, dtype=torch.float)
-        B_idxs = list(range(A_idx + self.step, len(nodes), self.step))
-        if (len(nodes) - 1) not in B_idxs:
-            B_idxs.append(len(nodes) - 1)
-        B_idxs.sort()
+
+        # 构造全部 B 候选节点索引
+        cand_B = list(range(A_idx + 1, len(nodes)))
+        if len(cand_B) <= self.step:
+            B_idxs = cand_B
+        else:
+            # 均匀采样 self.step 个索引
+            lin = np.linspace(0, len(cand_B) - 1, self.step)
+            B_idxs = [cand_B[int(round(i))] for i in lin]
+        B_idxs = sorted(set(B_idxs))
         B_nodes = [nodes[i] for i in B_idxs]  # n_B 个
         t4 = datetime.now()
         logging.info(
