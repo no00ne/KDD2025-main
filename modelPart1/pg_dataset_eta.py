@@ -33,6 +33,8 @@ def _one():
     return 1.0
 # DB connection settings (modify as needed)
 DB_DSN = "dbname=eta_voyage2 user=cxsj host=localhost port=5433"
+# Timestamp for train/test split (Unix seconds)
+SPLIT_TS = 1622003458.0
 K_NEAR = 32  # number of nearby vessels
 H_SHIP = 10  # number of historical voyages (same vessel)
 STEP_NODE = 32  # Max number of B nodes sampled from a voyage path
@@ -119,11 +121,18 @@ class PgETADataset(Dataset):
         self.flag2id = {"<UNK>": 0}
         self.port2id = {"<UNK>": 0}
 
-        # ---------------- 载入 voyage id 列表 ----------------
+        # ---------------- Load voyage id list ----------------
         with psycopg2.connect(DB_DSN, cursor_factory=ext.RealDictCursor) as tmp:
             with tmp.cursor() as cur:
-                flag = 'TRUE' if train else 'FALSE'
-                cur.execute(f"SELECT id FROM voyage_main WHERE train={flag};")
+                cond = (
+                    "end_time < to_timestamp(%s) OR start_time > to_timestamp(%s)"
+                    if train else
+                    "NOT (end_time < to_timestamp(%s) OR start_time > to_timestamp(%s))"
+                )
+                cur.execute(
+                    f"SELECT id FROM voyage_main WHERE {cond};",
+                    (SPLIT_TS, SPLIT_TS),
+                )
                 self.voy_ids = [row['id'] for row in cur.fetchall()]
         random.shuffle(self.voy_ids)
 
@@ -315,7 +324,7 @@ class PgETADataset(Dataset):
             FROM   voyage_node       n
             JOIN   voyage_main_hist  m  ON m.id = n.voyage_id
             WHERE  m.mmsi <> %s
-              {'AND m.train = TRUE' if self.train_flag else ''}
+              {'AND (m.end_time < to_timestamp(%s) OR m.start_time > to_timestamp(%s))' if self.train_flag else 'AND NOT (m.end_time < to_timestamp(%s) OR m.start_time > to_timestamp(%s))'}
               AND  n.geom && ST_MakeEnvelope(
                        p.lon-0.6, p.lat-0.6,
                        p.lon+0.6, p.lat+0.6 , 4326)     -- 粗 BBOX
@@ -330,7 +339,16 @@ class PgETADataset(Dataset):
         ORDER  BY p.idx, r.dist;
         """
 
-        params = (idxs, lons, lats, ex_mmsi, radius_m, K)
+        params = (
+            idxs,
+            lons,
+            lats,
+            ex_mmsi,
+            SPLIT_TS,
+            SPLIT_TS,
+            radius_m,
+            K,
+        )
         rows = self._fetchall(sql, params)
 
         # -------- 回桶 ----------
@@ -514,15 +532,24 @@ class PgETADataset(Dataset):
         # 5. 同船历史（H 条） → ship_*
         # ==================================================================
         t11 = datetime.now()
+        cond_hist = (
+            "AND (end_time < to_timestamp(%s) OR start_time > to_timestamp(%s))"
+            if self.train_flag else
+            "AND NOT (end_time < to_timestamp(%s) OR start_time > to_timestamp(%s))"
+        )
         sql_hist = (
-                "SELECT id FROM voyage_main "
-                " WHERE mmsi=%s AND id<>%s AND end_time<%s"
-                + (" AND train=TRUE" if self.train_flag else "")
-                + " ORDER BY RANDOM() LIMIT %s"
+            "SELECT id FROM voyage_main "
+            " WHERE mmsi=%s AND id<>%s AND end_time<%s "
+            f"{cond_hist} ORDER BY RANDOM() LIMIT %s"
         )
 
-        ship_ids = [r['id'] for r in self._run_sql(
-            sql_hist, (main['mmsi'], main['id'], main['start_time'], self.H), fetch="all")]
+        ship_ids = [
+            r['id'] for r in self._run_sql(
+                sql_hist,
+                (main['mmsi'], main['id'], main['start_time'], SPLIT_TS, SPLIT_TS, self.H),
+                fetch="all",
+            )
+        ]
         ship_nodes = {sid: self._nodes(sid) for sid in ship_ids}
         ship_mains = {sid: self._fetchone("SELECT * FROM voyage_main WHERE id=%s;", (sid,)) for sid in ship_ids}
 
