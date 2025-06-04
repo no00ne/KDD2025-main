@@ -95,8 +95,21 @@ def main(cfg):
     # ---------- (Optional) resume ----------
     start_ep = 1
     if cfg.resume and Path(cfg.resume).exists():
-        start_ep = load_ckpt(Path(cfg.resume), Aemb, shipemb, nearemb, mdl, optim, scaler, device) + 1
-        print(f"🔄 Resume from epoch {start_ep}")
+        start_ep = load_ckpt(
+            Path(cfg.resume),
+            Aemb,
+            shipemb,
+            nearemb,
+            mdl,
+            optim,
+            scaler,
+            device,
+            strict=False,
+        ) + 1
+        # 允许重新指定学习率等可调参数
+        for g in optim.param_groups:
+            g['lr'] = cfg.lr
+        print(f"🔄 Resume from epoch {start_ep} (lr={cfg.lr}, use_news={cfg.use_news})")
 
     # ---------- Train loop ----------
     best_val = float('inf')
