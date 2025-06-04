@@ -2,7 +2,7 @@
 eta_speed_model.py
 ─────────────────────────────────────────────────────────
 包含：NodeAEmbedder, StaticEmbedder, GroupEmbedder,
-     NearAggregator, SpeedPredictor
+     NearAggregator, MultiHeadNearAggregator, SpeedPredictor
 """
 import math
 
@@ -139,11 +139,12 @@ class StaticEmbedder(nn.Module):
 # -------------------- FuseBlock --------------------
 class FuseBlock(nn.Module):
     """ raw-64 与 proj-64 → 64 """
-    def __init__(self, d: int = 64):
+    def __init__(self, d: int = 64, dropout: float = 0.0):
         super().__init__()
         self.fuse = nn.Sequential(
             nn.Linear(d * 2, d * 2),
             nn.GELU(),
+            nn.Dropout(dropout),
             nn.Linear(d * 2, d)
         )
 
@@ -153,7 +154,8 @@ class FuseBlock(nn.Module):
         x_proj : (..., d)
         返回   : (..., d)
         """
-        return self.fuse(torch.cat([x_raw, x_proj], dim=-1))
+        cat = torch.cat([x_raw, x_proj], dim=-1)
+        return x_raw + self.fuse(cat)
 
 class NodeAEmbedderGRU(nn.Module):
     """
@@ -227,7 +229,7 @@ class GroupEmbedder(nn.Module):
         self.use_news = use_news
         d_model = 64
         self.enc = NodeAEmbedderGRU(d_in=d_seq_in, d_model=d_model)
-        self.fuse = FuseBlock(d=d_model)
+        self.fuse = FuseBlock(d=d_model, dropout=0.1)
         self.stat = StaticEmbedder(d_in=d_stat_in, d_emb=d_model)
 
     def forward(self,
@@ -381,6 +383,32 @@ class NearAggregator(nn.Module):
         return (wts.unsqueeze(-1) * near_emb).sum(1)  # (B,128)
 
 
+class MultiHeadNearAggregator(nn.Module):
+    """Multi-head attention based aggregator for nearby vessels."""
+
+    def __init__(self, d_emb: int = 128, d_q: int = 64, n_head: int = 4):
+        super().__init__()
+        self.q_proj = nn.Linear(d_q, d_emb)
+        self.kv_proj = nn.Linear(d_emb + 4, d_emb)
+        self.attn = nn.MultiheadAttention(embed_dim=d_emb, num_heads=n_head, batch_first=True)
+
+    def forward(self, near_emb: torch.Tensor, delta_xy: torch.Tensor, delta_cs: torch.Tensor, B_query: torch.Tensor):
+        """Aggregate K nearby embeddings into a single vector.
+
+        Parameters
+        ----------
+        near_emb : (B, K, d_emb)
+        delta_xy : (B, K, 2)
+        delta_cs : (B, K, 2)
+        B_query  : (B, d_q)
+        """
+        kv = torch.cat([near_emb, delta_xy, delta_cs], dim=-1)  # (B,K,d_emb+4)
+        kv = self.kv_proj(kv)                                   # (B,K,d_emb)
+        q = self.q_proj(B_query).unsqueeze(1)                    # (B,1,d_emb)
+        out, _ = self.attn(q, kv, kv)                            # (B,1,d_emb)
+        return out.squeeze(1)                                    # (B,d_emb)
+
+
 class SpeedPredictor(nn.Module):
     """
     最终预测下一段速度 (km/h)，输入：
@@ -391,9 +419,9 @@ class SpeedPredictor(nn.Module):
       • ship_emb    : (B,H,128)
     """
 
-    def __init__(self, d_emb=128):
+    def __init__(self, d_emb=128, heads: int = 4):
         super().__init__()
-        self.near_aggr = NearAggregator(d_emb, 64)
+        self.near_aggr = MultiHeadNearAggregator(d_emb, 64, heads)
         self.B_proj = nn.Linear(6, 64)
         self.mlp = nn.Sequential(
             nn.Linear(d_emb * 3 + 64, 128), nn.ReLU(),
