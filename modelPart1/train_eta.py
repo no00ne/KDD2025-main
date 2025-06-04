@@ -21,6 +21,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 import argparse
 import json
+import math
 from pathlib import Path
 import shutil
 import torch
@@ -116,6 +117,8 @@ def main(cfg):
     for ep in range(start_ep, cfg.epochs + 1):
         with Timer(f"Epoch {ep}"):
             run_loss = run_cnt = 0
+            run_abs = 0.0
+            run_sq = 0.0
             pbar = tqdm(train_dl, desc=f"E{ep}/{cfg.epochs} 0.000")
 
             # 在外面定义累积步数和一个 counter
@@ -170,6 +173,8 @@ def main(cfg):
                     pred = mdl(B6, A_emb, near_emb, dxy, dcs, ship_emb, dist_seg, speed_A, news_emb).squeeze(-1)
                     loss = criterion(pred, label)
                     print(f'loss={loss}')
+                    run_abs += torch.sum(torch.abs(pred.detach() - label)).item()
+                    run_sq += torch.sum((pred.detach() - label) ** 2).item()
                     # —— 这里做梯度累积：先缩放 loss
                     loss = loss / accum_steps
 
@@ -206,16 +211,22 @@ def main(cfg):
 
         ckpt = out / f"epoch_{ep}.pth"
         save_ckpt(ep, Aemb, shipemb, nearemb, mdl, optim, scaler, ckpt)
-        print(f"Epoch {ep}: Train MARE {run_loss / run_cnt:.3f} ")
+        train_mare = run_loss / run_cnt
+        train_mae = run_abs / run_cnt
+        train_rmse = math.sqrt(run_sq / run_cnt)
+        print(f"Epoch {ep}: Train MARE {train_mare:.3f} MAE {train_mae:.3f} RMSE {train_rmse:.3f}")
         # Validation（保持不变）
         with Timer("validation"):
-            val_mare = eval_eta(mdl, Aemb, shipemb, nearemb, val_dl, device, criterion, cfg.amp, news_enc)
+            val_mare, val_mae, val_rmse = eval_eta(mdl, Aemb, shipemb, nearemb, val_dl, device, criterion, cfg.amp, news_enc)
         if cfg.scheduler == 'plateau':
             scheduler.step(val_mare)
         else:
             scheduler.step()
 
-        print(f"Epoch {ep}: Train MARE {run_loss / run_cnt:.3f}   Val MARE {val_mare:.3f}")
+        print(
+            f"Epoch {ep}: Train MARE {train_mare:.3f} MAE {train_mae:.3f} RMSE {train_rmse:.3f}   "
+            f"Val MARE {val_mare:.3f} MAE {val_mae:.3f} RMSE {val_rmse:.3f}"
+        )
 
         # Save checkpoint（保持不变）
 
