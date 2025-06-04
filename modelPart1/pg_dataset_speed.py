@@ -10,14 +10,19 @@ import psycopg2
 import psycopg2.extras as ext
 from torch.utils.data import Dataset
 
+# Utility functions
 from utils import (
     build_seq_tensor, build_stat_tensor,
-    latlon_to_local, encode_time
+    latlon_to_local, encode_time,
 )
 from utils import Timer, init_logger
+
 init_logger("INFO")
+# DB connection string (edit as needed)
 # DB 连接串（请按需修改）
 DB_DSN   = "dbname=eta_voyage1 user=postgres password=y1=x2-c30 host=localhost port=5432"
+# Timestamp for train/test split (Unix seconds)
+SPLIT_TS = 1622003458.0
 K_NEAR   = 32    # 邻船条数
 H_SHIP   = 10     # 同船历史条数
 STEP_NODE= 5    # A_seq 采样步
@@ -30,11 +35,18 @@ class PgETADataset(Dataset):
         self.K, self.H, self.R, self.step = k_near, h_ship, radius_km, step
         self.train_flag = train
 
-        # “短连接”只用来拿 ID 列表
+        # Short connection used only to fetch voyage id list
         with psycopg2.connect(DB_DSN, cursor_factory=ext.RealDictCursor) as tmp:
             with tmp.cursor() as cur:
-                flag = 'TRUE' if train else 'FALSE'
-                cur.execute(f"SELECT id FROM voyage_main WHERE train={flag};")
+                cond = (
+                    "end_time < to_timestamp(%s) OR start_time > to_timestamp(%s)"
+                    if train else
+                    "NOT (end_time < to_timestamp(%s) OR start_time > to_timestamp(%s))"
+                )
+                cur.execute(
+                    f"SELECT id FROM voyage_main WHERE {cond};",
+                    (SPLIT_TS, SPLIT_TS),
+                )
                 self.voy_ids = [r['id'] for r in cur.fetchall()]
         random.shuffle(self.voy_ids)
 
@@ -179,11 +191,19 @@ class PgETADataset(Dataset):
             A_seq_proj_list.append(build_seq_tensor(nodes[:A_idx+1], B_ref))
 
             # 同船历史: raw, proj 和 stats
+            cond_hist = (
+                "AND (end_time < to_timestamp(%s) OR start_time > to_timestamp(%s))"
+                if self.train_flag else
+                "AND NOT (end_time < to_timestamp(%s) OR start_time > to_timestamp(%s))"
+            )
+            sql_hist = (
+                "SELECT id FROM voyage_main "
+                "WHERE mmsi=%s AND id<>%s AND end_time<%s "
+                f"{cond_hist} ORDER BY RANDOM() LIMIT %s"
+            )
             rows = self._fetchall(
-                "SELECT id FROM voyage_main WHERE mmsi=%s AND id<>%s AND end_time<%s" +
-                (" AND train=TRUE" if self.train_flag else "") +
-                " ORDER BY RANDOM() LIMIT %s",
-                (main['mmsi'], vid, main['start_time'], self.H)
+                sql_hist,
+                (main['mmsi'], vid, main['start_time'], SPLIT_TS, SPLIT_TS, self.H)
             )
             seqs_r, stats_r, seqs_p, stats_p = [], [], [], []
             for r in rows:
