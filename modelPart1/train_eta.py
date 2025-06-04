@@ -32,7 +32,7 @@ from tqdm import tqdm
 from torch.profiler import profile, ProfilerActivity, record_function
 from utils import init_logger, Timer, _AMP_NEW, set_seed, save_ckpt, load_ckpt, collate_fn_eta
 from pg_dataset_eta import PgETADataset
-from eta_speed_model import GroupEmbedder
+from eta_speed_model import GroupEmbedder, NewsEmbedder
 from eta_eta_predictor import ETAPredictorNet
 
 
@@ -80,7 +80,10 @@ def main(cfg):
     shipemb = GroupEmbedder(use_news=cfg.use_news, m_news=cfg.m_news).to(device)  # 修改构造函数以接收新闻维度
     nearemb = GroupEmbedder(use_news=cfg.use_news, m_news=cfg.m_news).to(device)  # 修改构造函数以接收新闻维度
     mdl = ETAPredictorNet(d_news=cfg.m_news, use_news=cfg.use_news).to(device)
+
     news_enc = None
+    if cfg.use_news:
+        news_enc = NewsEmbedder(d_in=16, d_out=cfg.m_news).to(device)
     params = list(Aemb.parameters()) + list(shipemb.parameters()) + list(nearemb.parameters()) + list(mdl.parameters())
     optim = Adam(params, lr=cfg.lr, weight_decay=cfg.wd)
     scheduler = (torch.optim.lr_scheduler.CosineAnnealingLR(optim, T_max=cfg.epochs,
@@ -147,9 +150,9 @@ def main(cfg):
 
                     # news
                     if news_feat is not None:
-                        news_emb = news_enc(news_feat).mean(dim=1)
+                        news_emb = news_enc(news_feat)
                     else:
-                        news_emb = torch.zeros(A_emb.shape[0], 128, device=A_emb.device)
+                        news_emb = torch.zeros(B, nB, mdl.d_news, device=A_emb.device)
 
                     pred = mdl(B6, A_emb, near_emb, dxy, dcs, ship_emb, dist_seg, speed_A, news_emb).squeeze(-1)
                     loss = criterion(pred, label)
@@ -193,7 +196,7 @@ def main(cfg):
         print(f"Epoch {ep}: Train MARE {run_loss / run_cnt:.3f} ")
         # Validation（保持不变）
         with Timer("validation"):
-            val_mare = eval_eta(mdl, Aemb, shipemb, nearemb, val_dl, device, criterion, cfg.amp)
+            val_mare = eval_eta(mdl, Aemb, shipemb, nearemb, val_dl, device, criterion, cfg.amp, news_enc)
         if cfg.scheduler == 'plateau':
             scheduler.step(val_mare)
         else:

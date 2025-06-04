@@ -429,7 +429,7 @@ def collate_fn_eta(batch: List[Dict], H: int, K: int):
        speedA_pad,
        B6_pad,
        label_pad,
-       news_pad)
+       news_pad)   # news_pad: (B, nB, M, 16) if not None
     """
     B = len(batch)
 
@@ -700,9 +700,14 @@ def eval_eta(mdl,
              val_dl,
              device: torch.device,
              criterion,
-             use_amp: bool = True) -> float:
-    """
-    Run one full validation epoch and return the mean loss / metric.
+             use_amp: bool = True,
+             news_enc=None) -> float:
+    """Run one full validation epoch and return the mean loss/metric.
+
+    Parameters
+    ----------
+    news_enc : callable or None
+        If provided, used to embed the padded news tensor.
     """
     mdl.eval()
     Aemb.eval()
@@ -782,10 +787,11 @@ def eval_eta(mdl,
                 )  # → (B, nB, K, 128)
 
                 # ---- news embedding (可选) ----
-                if news_feat is not None:
-                    news_emb = news_feat.mean(dim=1)  # (B, 128)
+                if (news_feat is not None) and (news_enc is not None):
+                    news_emb = news_enc(news_feat)
                 else:
-                    news_emb = torch.zeros(A_emb.shape[0], 128, device=device)
+                    nB = near_emb.size(1)
+                    news_emb = torch.zeros(A_emb.size(0), nB, mdl.d_news, device=device)
 
                 # ---- predictor ----
                 pred = mdl(
@@ -876,7 +882,10 @@ def get_node_related_news_tensor(nodes, UN_PRED_NEWS, PRED_NEWS, max_news_num=10
       PRED_NEWS: pd.read_csv(predictable.csv) 的测试集/训练集
       max_num: 每个节点最多选择的新闻数量
     return:
-      torch.Tensor shape (idx_of_nodes, idx_of_news, 8); 8: 2(event_time, delta_t) + 6(scores)
+      torch.Tensor shape (idx_of_nodes, idx_of_news, 16)
+      2(event_time, delta_t) + 6(scores) +
+      4(north, south, east, west) +
+      4(north-lat, south-lat, east-lon, west-lon)
     """
     cols = ["event_time", "north", "south", "east", "west"] + [f"score_{i}" for i in range(6)]
     up_arr  = UN_PRED_NEWS[cols].values
@@ -886,7 +895,7 @@ def get_node_related_news_tensor(nodes, UN_PRED_NEWS, PRED_NEWS, max_news_num=10
     pr_times = pr_arr[:,0]
 
     num_nodes = len(nodes)
-    out = torch.zeros((num_nodes, max_news_num, 7), dtype=torch.float32)
+    out = torch.zeros((num_nodes, max_news_num, 16), dtype=torch.float32)
 
     for idx, node in enumerate(nodes):
         t, lat, lon = node["timestamp"], node["latitude"], node["longitude"]
@@ -908,9 +917,20 @@ def get_node_related_news_tensor(nodes, UN_PRED_NEWS, PRED_NEWS, max_news_num=10
             hits = hits[:max_news_num]
             times    = hits[:, 0:1]
             delta_t  = times - t
+            north    = hits[:, 1:2]
+            south    = hits[:, 2:3]
+            east     = hits[:, 3:4]
+            west     = hits[:, 4:5]
             scores   = hits[:, 5:11]
+
+            # 差值特征：新闻范围与节点位置的差
+            diff_feat = np.hstack((north - lat,
+                                   south - lat,
+                                   east - lon,
+                                   west - lon))
+
             tensor   = torch.tensor(
-                np.hstack((times, delta_t, scores)),
+                np.hstack((times, delta_t, scores, north, south, east, west, diff_feat)),
                 dtype=torch.float32
             )
 
