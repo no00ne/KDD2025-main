@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict
+import warnings
 logging.basicConfig(
     level=logging.ERROR,
     format="%(asctime)s %(levelname)s %(message)s",
@@ -837,6 +838,11 @@ def eval_eta(mdl,
     Aemb.train()
     shipemb.train()
     nearemb.train()
+
+    if n_seen == 0:
+        warnings.warn("Validation loader returned no samples; loss is set to 0")
+        return 0.0
+
     return tot_loss / n_seen
 
 
