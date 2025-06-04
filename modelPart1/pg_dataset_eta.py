@@ -83,25 +83,17 @@ class PgETADataset(Dataset):
             up_news = pd.read_csv("news_data/unpredictable.csv")
             pr_news = pd.read_csv("news_data/predictable.csv")
 
-            # 按时间戳排序
-            up_news = up_news.sort_values('event_time')
-            pr_news = pr_news.sort_values('event_time')
+            up_news = up_news.sort_values("event_time")
+            pr_news = pr_news.sort_values("event_time")
 
-            # 计算unpredictable的划分点
-            up_split_idx = int(len(up_news) * 0.8)
-            up_split_time = up_news.iloc[up_split_idx]['event_time']
+            # ========= 关键：用 SPLIT_TS 切 =========
 
-            # 划分unpredictable
             if train:
-                self.UN_PRED_NEWS = up_news.iloc[:up_split_idx]
+                self.UN_PRED_NEWS = up_news[up_news["event_time"] <= SPLIT_TS]
+                self.PRED_NEWS = pr_news[pr_news["event_time"] <= SPLIT_TS]
             else:
-                self.UN_PRED_NEWS = up_news.iloc[up_split_idx:]
-
-            # 基于unpredictable的划分时间点划分predictable
-            if train:
-                self.PRED_NEWS = pr_news[pr_news['event_time'] <= up_split_time]
-            else:
-                self.PRED_NEWS = pr_news[pr_news['event_time'] > up_split_time]
+                self.UN_PRED_NEWS = up_news[up_news["event_time"] > SPLIT_TS]
+                self.PRED_NEWS = pr_news[pr_news["event_time"] > SPLIT_TS]
         else:
             self.UN_PRED_NEWS = None
             self.PRED_NEWS = None
