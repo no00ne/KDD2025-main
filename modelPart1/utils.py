@@ -739,6 +739,8 @@ def eval_eta(mdl,
     nearemb.eval()
 
     tot_loss = 0.0
+    tot_abs = 0.0
+    tot_sq = 0.0
     n_seen = 0
 
     with torch.no_grad():
@@ -831,8 +833,11 @@ def eval_eta(mdl,
                 ).squeeze(-1)  # (B,)
                 loss = criterion(pred, label)
 
-            tot_loss += loss.item() * label.size(0)
-            n_seen += label.size(0)
+            bsz = label.size(0)
+            tot_loss += loss.item() * bsz
+            tot_abs += torch.sum(torch.abs(pred - label)).item()
+            tot_sq += torch.sum((pred - label) ** 2).item()
+            n_seen += bsz
 
     mdl.train()
     Aemb.train()
@@ -840,10 +845,14 @@ def eval_eta(mdl,
     nearemb.train()
 
     if n_seen == 0:
-        warnings.warn("Validation loader returned no samples; loss is set to 0")
-        return 0.0
+        warnings.warn("Validation loader returned no samples; metrics are set to 0")
+        return 0.0, 0.0, 0.0
 
-    return tot_loss / n_seen
+    mare = tot_loss / n_seen
+    mae = tot_abs / n_seen
+    rmse = math.sqrt(tot_sq / n_seen)
+
+    return mare, mae, rmse
 
 
 
