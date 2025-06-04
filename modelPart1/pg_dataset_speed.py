@@ -171,7 +171,7 @@ class PgETADataset(Dataset):
             # raw: 保留经纬位置
             raw_feats = []
             for n in nodes[:A_idx+1]:
-                spd = (n.get('speed') or 0.0) * 1.852
+                spd = (n.get('speed') or 0.0)
                 sin_c, cos_c = math.sin(math.radians(n.get('course',0.0))), math.cos(math.radians(n.get('course',0.0)))
                 sin_h, cos_h = encode_time(n.get('timestamp',''))
                 raw_feats.append([spd, sin_c, cos_c, n['latitude'], n['longitude'], sin_h, cos_h])
@@ -192,7 +192,7 @@ class PgETADataset(Dataset):
                 # raw
                 feats_r = []
                 for n in nds:
-                    spd = (n.get('speed') or 0.0) * 1.852
+                    spd = (n.get('speed') or 0.0)
                     sin_c, cos_c = math.sin(math.radians(n.get('course',0.0))), math.cos(math.radians(n.get('course',0.0)))
                     sin_h, cos_h = encode_time(n.get('timestamp',''))
                     feats_r.append([spd, sin_c, cos_c, n['latitude'], n['longitude'], sin_h, cos_h])
@@ -217,7 +217,7 @@ class PgETADataset(Dataset):
                 nds = self._nodes(r['vid'])
                 feats_nr = []
                 for n in nds:
-                    spd = (n.get('speed') or 0.0) * 1.852
+                    spd = (n.get('speed') or 0.0)
                     sin_c, cos_c = math.sin(math.radians(n.get('course',0.0))), math.cos(math.radians(n.get('course',0.0)))
                     sin_h, cos_h = encode_time(n.get('timestamp',''))
                     feats_nr.append([spd, sin_c, cos_c, n['latitude'], n['longitude'], sin_h, cos_h])

@@ -6,7 +6,11 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict
-
+logging.basicConfig(
+    level=logging.ERROR,
+    format="%(asctime)s %(levelname)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 import numpy as np
 import torch
 import pandas as pd
@@ -32,19 +36,24 @@ def set_seed(seed=2025):
 
 
 # -------------------- Checkpoint --------------------
-def save_ckpt(ep, emb, mdl, opt, scaler, path: Path):
+def save_ckpt(ep, Aemb, shipemb, nearemb, mdl, opt, scaler, path: Path):
     torch.save({
         'epoch': ep,
-        'embedder': emb.state_dict(),
+        'Aemb': Aemb.state_dict(),
+        'shipemb': shipemb.state_dict(),
+        'nearemb': nearemb.state_dict(),
         'model': mdl.state_dict(),
         'optim': opt.state_dict(),
         'scaler': scaler.state_dict() if scaler else None
     }, str(path))
 
 
-def load_ckpt(path: Path, emb, mdl, opt, scaler, device):
+
+def load_ckpt(path: Path, Aemb, shipemb, nearemb, mdl, opt, scaler, device):
     ckpt = torch.load(str(path), map_location=device)
-    emb.load_state_dict(ckpt['embedder'])
+    Aemb.load_state_dict(ckpt['Aemb'])
+    shipemb.load_state_dict(ckpt['shipemb'])
+    nearemb.load_state_dict(ckpt['nearemb'])
     mdl.load_state_dict(ckpt['model'])
     opt.load_state_dict(ckpt['optim'])
     if scaler and ckpt.get('scaler'):
@@ -52,8 +61,9 @@ def load_ckpt(path: Path, emb, mdl, opt, scaler, device):
     return ckpt.get('epoch', 0)
 
 
+
 # -------------------- 计时 --------------------
-def init_logger(level="INFO"):
+def init_logger(level="ERROR"):
     logging.basicConfig(
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%H:%M:%S",
@@ -125,7 +135,7 @@ def build_seq_tensor(nodes: list[dict], ref: dict) -> torch.Tensor:
     feats = []
     for n in nodes:
         # --- ① 速度 & 航向 ---
-        spd_kmh = (n.get("speed") or 0.0) * 1.852
+        spd_kmh = (n.get("speed") or 0.0)
         sin_c = math.sin(math.radians(n.get("course", 0.0)))
         cos_c = math.cos(math.radians(n.get("course", 0.0)))
 
@@ -226,7 +236,7 @@ def build_raw_seq_tensor(nodes: list[dict]) -> torch.Tensor:
     feats = []
     for n in nodes:
         # 船速从节（knots）转到 km/h
-        spd = (n.get("speed") or 0.0) * 1.852
+        spd = (n.get("speed") or 0.0)
         # 航向的 sin/cos
         sin_c = math.sin(math.radians(n.get("course", 0.0)))
         cos_c = math.cos(math.radians(n.get("course", 0.0)))
@@ -307,60 +317,126 @@ def _pad_seq(seq_list: List[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
 # ---------------------------------------------------------------
 #  utils 辅助 – 两个新的 padding 例程
 # ---------------------------------------------------------------
-def _pad_2d_seqs(list2d):
+# 文件：utils.py 中原来的 _pad_2d_seqs，整段替换为下面内容
+
+
+
+def _pad_2d_seqs(list2d: List[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
     """
-    list2d:  [N_i × (T,7)]  → (N_max, T_max, 7)   右补 0
-    返回:  padded,  length_vec (N_max,)
+    list2d:  [Tensor_1, Tensor_2, ..., Tensor_N], 每个 Tensor_i 的形状是 (T_i, 7) 或可能是空张量 (0,)
+    → 返回 padded: (N, T_max, 7)，后面补 0；lengths: (N,)
     """
     if len(list2d) == 0:
         return torch.zeros(0, 1, 7), torch.zeros(0, dtype=torch.long)
 
-    lengths = torch.tensor([s.shape[0] for s in list2d], dtype=torch.long)
-    T_max   = int(lengths.max())
-    N_max   = len(list2d)
-    out     = torch.zeros(N_max, T_max, 7, dtype=list2d[0].dtype)
+    # 首先将所有形如 (0,) 的“空”张量，转换成 (0, 7)
+    cleaned = []
+    for s in list2d:
+        if s.ndim == 1 and s.numel() == 0:
+            # 遇到 shape=(0,) 的情况，换成 shape=(0,7)
+            cleaned.append(torch.zeros(0, 7, dtype=s.dtype))
+        else:
+            cleaned.append(s)
 
-    for i, s in enumerate(list2d):
-        out[i, : s.shape[0]] = s
+    # 计算每条序列的长度 T_i
+    lengths = torch.tensor([s.shape[0] for s in cleaned], dtype=torch.long)
+    T_max = int(lengths.max())      # 这一批里最长的时间维度
+    N_max = len(cleaned)            # 批大小
+
+    # 预分配输出张量，dtype 与第一个非空张量一致
+    dtype = cleaned[0].dtype
+    out = torch.zeros(N_max, T_max, 7, dtype=dtype)
+
+    for i, s in enumerate(cleaned):
+        # 对于“真正”有时间维的序列，直接复制；如果是 (0,7)，则 skip
+        if s.shape[0] > 0:
+            out[i, : s.shape[0]] = s
+
     return out, lengths
+
 
 
 def _pad_3d_nested(list3d, K, dim=7):
     """
-    list3d:  len = n_B;   每项 list[K] → (T, dim) Tensor
-    统一到 (n_B_max, K, T_max, dim)，并给 (n_B_max, K) 长度张量
+    list3d:  len = n_B;   每项 sub: list[K] → (T, dim) Tensor 或者是 嵌套列表 [Tensor, ...]
+    统一到 (n_B, K, T_max, dim)，并给 (n_B, K) 长度张量
     """
     n_B_max = len(list3d)
-    # 统计整批最长序列
+
+    # 1. 第一遍：统计整批最长序列 T_max
     T_max = 1
     for sub in list3d:
         for seq in sub:
-            T_max = max(T_max, seq.shape[0])
+            if isinstance(seq, torch.Tensor):
+                T_max = max(T_max, seq.shape[0])
+            else:
+                # seq 是列表时，取第一个 Tensor 来确定长度
+                if len(seq) > 0 and isinstance(seq[0], torch.Tensor):
+                    T_max = max(T_max, seq[0].shape[0])
+                # 否则跳过
 
-    out  = torch.zeros(n_B_max, K, T_max, dim, dtype=list3d[0][0].dtype)
+    # 2. 确定 dtype：直接探第一个元素，若还是列表则再探其第一个
+    sample = list3d[0][0]
+    if isinstance(sample, torch.Tensor):
+        tensor_dtype = sample.dtype
+    else:
+        # sample 是 list，需要再取第一个 Tensor
+        tensor_dtype = sample[0].dtype
+
+    # 3. 分配输出张量和长度张量
+    out = torch.zeros(n_B_max, K, T_max, dim, dtype=tensor_dtype)
     lens = torch.zeros(n_B_max, K, dtype=torch.long)
-    for i, sub in enumerate(list3d):          # sub: list[K]
+
+    # 4. 第二遍：逐位置把原始 seq 拷贝到 out，并记录真实长度
+    for i, sub in enumerate(list3d):
         for j, seq in enumerate(sub):
-            T = seq.shape[0]
-            lens[i, j] = T
-            out[i, j, :T] = seq
+            if isinstance(seq, torch.Tensor):
+                T = seq.shape[0]
+                lens[i, j] = T
+                out[i, j, :T, :] = seq
+
+            else:
+                # seq 是列表，拿第一个 Tensor 来 pad
+                if len(seq) > 0 and isinstance(seq[0], torch.Tensor):
+                    first = seq[0]
+                    T = first.shape[0]
+                    lens[i, j] = T
+                    out[i, j, :T, :] = first
+                # 否则 lens 默认为 0，不做填充
+
     return out, lens
+
 
 
 # ---------------------------------------------------------------
 #  collate_fn_eta
 # ---------------------------------------------------------------
-def collate_fn_eta(batch: list[dict]):
+import torch
+from typing import List, Dict
+
+def collate_fn_eta(batch: List[Dict], H: int, K: int):
     """
-    把 PgETADataset.__getitem__ 的 list[dict] 打包成一组张量 / 列表，供 DataLoader 使用。
-    张量右侧补 0；有效步长分别放到 *_len 中。
+    batch:       List[dict]，每个 dict 对应 PgETADataset.__getitem__ 的输出。
+    H:           同船轨迹个数上限
+    K:           邻船轨迹个数上限
+
+    返回（tuple），正好对应 train_eta.py 里 unpack 的 19 个输入维度：
+      (A_raw_pad, A_proj_pad, A_len, A_stat_pad,
+       ship_raw_pad, ship_proj_pad, ship_len, ship_stat_pad,
+       near_raw_pad, near_proj_pad, near_len, near_stat_pad,
+       dxy_pad, dcs_pad,
+       dist_pad,
+       speedA_pad,
+       B6_pad,
+       label_pad,
+       news_pad)
     """
     B = len(batch)
 
-    # ---------- A_raw / A_len ----------
-    A_raw_pad, A_len = _pad_2d_seqs([b["A_raw"] for b in batch])           # (B,T_A_max,7)
+    # ========== A_raw / A_len ==========
+    A_raw_pad, A_len = _pad_2d_seqs([b["A_raw"] for b in batch])  # (B, T_A_max, 7)
 
-    # ---------- A_proj ----------
+    # ========== A_proj ==========
     nB_max = max(len(b["A_proj_list"]) for b in batch)
     T_Amax = A_raw_pad.shape[1]
     A_proj_pad = torch.zeros(B, nB_max, T_Amax, 7)
@@ -368,94 +444,213 @@ def collate_fn_eta(batch: list[dict]):
         for j, seq in enumerate(b["A_proj_list"]):
             A_proj_pad[i, j, : seq.shape[0]] = seq
 
-    # ---------- A_stat ----------
-    A_stat_pad = torch.stack([b["A_stat"] for b in batch])                 # (B,16)
+    # ========== A_stat ==========
+    A_stat_pad = torch.stack([b["A_stat"] for b in batch])  # (B,16)
 
-    # ---------- ship ----------
-    H = len(batch[0]["ship_raw_list"][0])          # 同一数据集固定 H
-    ship_raw_nested  = []
-    ship_proj_nested = []
-    ship_len_nested  = []
-    ship_stat_nested = []
+    # ==================== ship 部分 ====================
+    # 先对每个 (i,j) 内的 H 条序列在时间维度上 pad。如果某个 hist_list 少于 H 条，就补全 (1,7) 的零张量。
+    ship_raw_tmp    = []   # ship_raw_tmp[i][0] 就是 “第 0 个 B_ref” 下的 (H, T_loc, 7)
+    ship_proj_tmp   = []   # ship_proj_tmp[i][j]: (H, T_loc_j, 7)
+    ship_len_local  = []   # ship_len_local[i][0] 是 “第 0 个 B_ref” 下的 H 个长度
+
     for b in batch:
-        ship_raw_nested .append(b["ship_raw_list"])     # len n_B
-        ship_proj_nested.append(b["ship_proj_list"])
-        ship_stat_nested.append(b["ship_stats_list"])
+        raw_per_sample  = []
+        proj_per_sample = []
+        len_per_sample  = []
 
-    ship_raw_pad,  ship_len = _pad_3d_nested(ship_raw_nested,  H)          # (B,n_B,K=H,T,7)
-    ship_proj_pad, _        = _pad_3d_nested(ship_proj_nested, H)
-    # ship stats – (B,n_B,H,16)
-    n_B_max = ship_raw_pad.shape[1]
-    ship_stat_pad = torch.zeros(B, n_B_max, H, 16)
-    for i, stat_B in enumerate(ship_stat_nested):
-        for j, stat_list in enumerate(stat_B):
-            for k, s in enumerate(stat_list):
-                ship_stat_pad[i, j, k] = s
+        for idx_B, hist_list in enumerate(b["ship_raw_list"]):
+            # 如果 hist_list 少于 H 条，就补成 H 条全零(1,7) Tensor
+            if len(hist_list) < H:
+                hist_list = hist_list + [torch.zeros(1, 7)] * (H - len(hist_list))
+            # now len(hist_list) == H
 
-    # ---------- near ----------
-    K = len(batch[0]["near_raw_list"][0])
-    near_raw_nested  = []
-    near_proj_nested = []
-    near_stat_nested = []
-    dxy_nested, dcs_nested = [], []
+            # pad 这 H 条轨迹
+            stacked_raw, lengths_raw = _pad_2d_seqs(hist_list)  # (H, T_loc, 7)
+            raw_per_sample.append(stacked_raw)
+
+            # 对应的 proj_list 也补齐到 H 条
+            proj_list = b["ship_proj_list"][idx_B]
+            if len(proj_list) < H:
+                proj_list = proj_list + [torch.zeros(1, 7)] * (H - len(proj_list))
+            stacked_proj, lengths_proj = _pad_2d_seqs(proj_list)  # (H, T_loc, 7)
+            proj_per_sample.append(stacked_proj)
+
+            # lengths_raw 本身是 (H,) 向量，这里只取最大值表示 pad 后的 T_loc
+            len_per_sample.append(int(lengths_raw.max().item()))
+
+        ship_raw_tmp.append(raw_per_sample)
+        ship_proj_tmp.append(proj_per_sample)
+        ship_len_local.append(len_per_sample)
+
+    # 只保留每个样本第 0 个 B_ref 下的 raw，输出为 (B, H, T_ship_pad, 7)
+    n_B_max     = max(len(x) for x in ship_raw_tmp)
+    T_ship_pad  = max(max(pl) for pl in ship_len_local)
+    ship_raw_pad  = torch.zeros(B, H, T_ship_pad, 7)
+    # 对齐 proj 维度为 (B, n_B_max, H, T_ship_pad, 7)
+    ship_proj_pad = torch.zeros(B, n_B_max, H, T_ship_pad, 7)
+    # ship_len: 只记录 “第 0 个 B_ref” 下的 H 个长度，形状 (B, H)
+    ship_len      = torch.zeros(B, H, dtype=torch.long)
+    # ship_stat_pad: 只保留 “第 0 个 B_ref” 下的 H 条 stat，形状 (B, H, 16)
+    ship_stat_pad = torch.zeros(B, H, 16)
+
+    for i, b in enumerate(batch):
+        # 取第 0 个 B_ref 下 pad 后的 raw 张量，形状 (H, T_loc, 7)
+        raw_0 = ship_raw_tmp[i][0]
+        T_loc = raw_0.shape[1]
+        ship_raw_pad[i, :, :T_loc, :] = raw_0
+
+        # 对齐每个 j 下的 proj
+        for j in range(n_B_max):
+            if j < len(b["ship_proj_list"]):
+                proj_j = ship_proj_tmp[i][j]  # (H, T_loc_j, 7)
+                T_loc_j = proj_j.shape[1]
+                ship_proj_pad[i, j, :, :T_loc_j, :] = proj_j
+
+        # 记录 lengths：只取第 0 个 B_ref 下的 H 个长度
+        ship_len[i, :] = torch.tensor(ship_len_local[i][0], dtype=torch.long)
+
+        # 只填充第 0 个 B_ref 下的 H 条 stat
+        for k, s in enumerate(b["ship_stats_list"][0]):
+            ship_stat_pad[i, k] = s
+
+    # ==================== near 部分 ====================
+    # 对每个 (i,j) 内的 K 条轨迹 pad，如果某个 neigh_list 本身少于 K 条也补全零
+    near_raw_tmp   = []
+    near_proj_tmp  = []
+    near_len_local = []  # near_len_local[i][j] 是一个 (K,) 向量
+
     for b in batch:
-        near_raw_nested .append(b["near_raw_list"])
-        near_proj_nested.append(b["near_proj_list"])
-        near_stat_nested.append(b["near_stats_list"])
-        dxy_nested.append(b["delta_xy"])
-        dcs_nested.append(b["delta_cs"])
+        raw_per_sample  = []
+        proj_per_sample = []
+        len_per_sample  = []
 
-    near_raw_pad,  near_len = _pad_3d_nested(near_raw_nested,  K)          # (B,n_B,K,T,7)
-    near_proj_pad, _        = _pad_3d_nested(near_proj_nested, K)
-    # near stats – (B,n_B,K,16)
+        for idx_B, neigh_list in enumerate(b["near_raw_list"]):
+            # 如果 neigh_list 少于 K 条，就补成 K 条全零(1,7) Tensor
+            if len(neigh_list) < K:
+                neigh_list = neigh_list + [torch.zeros(1, 7)] * (K - len(neigh_list))
+            stacked_raw, lengths_raw = _pad_2d_seqs(neigh_list)  # (K, T_loc, 7)
+            raw_per_sample.append(stacked_raw)
+
+            proj_list = b["near_proj_list"][idx_B]
+            if len(proj_list) < K:
+                proj_list = proj_list + [torch.zeros(1, 7)] * (K - len(proj_list))
+            stacked_proj, lengths_proj = _pad_2d_seqs(proj_list)  # (K, T_loc, 7)
+            proj_per_sample.append(stacked_proj)
+
+            len_per_sample.append(lengths_raw)  # lengths_raw 是 (K,) 向量
+
+        near_raw_tmp.append(raw_per_sample)
+        near_proj_tmp.append(proj_per_sample)
+        near_len_local.append(len_per_sample)
+
+    T_near_pad   = max(max(lens.max().item() for lens in pl) for pl in near_len_local)
+    # near_raw_pad： (B, n_B_max, K, T_near_pad, 7)
+    near_raw_pad  = torch.zeros(B, n_B_max, K, T_near_pad, 7)
+    near_proj_pad = torch.zeros(B, n_B_max, K, T_near_pad, 7)
+    # near_len： (B, n_B_max, K)
+    near_len      = torch.zeros(B, n_B_max, K, dtype=torch.long)
+    # near_stat_pad: (B, n_B_max, K, 16)
     near_stat_pad = torch.zeros(B, n_B_max, K, 16)
-    for i, stat_B in enumerate(near_stat_nested):
-        for j, stat_list in enumerate(stat_B):
-            for k, s in enumerate(stat_list):
+
+    for i, b in enumerate(batch):
+        for j, raw_stacked in enumerate(near_raw_tmp[i]):
+            T_loc = raw_stacked.shape[1]
+            near_raw_pad[i, j, :, :T_loc, :]  = raw_stacked
+            near_proj_pad[i, j, :, :T_loc, :] = near_proj_tmp[i][j]
+            near_len[i, j, :]                = near_len_local[i][j]
+            for k, s in enumerate(b["near_stats_list"][j]):
                 near_stat_pad[i, j, k] = s
 
-    # ---------- δxy / δcs ----------
+    # ========== δxy / δcs ==========
     dxy_pad = torch.zeros(B, n_B_max, K, 2)
     dcs_pad = torch.zeros(B, n_B_max, K, 2)
-    for i in range(B):
-        dxy_pad[i, : batch[i]["delta_xy"].shape[0]] = batch[i]["delta_xy"]
-        dcs_pad[i, : batch[i]["delta_cs"].shape[0]] = batch[i]["delta_cs"]
-    # ---------- dist_seg ----------
-    n_B_max = near_raw_pad.shape[1]
-    dist_pad = torch.zeros(len(batch), n_B_max)
+    for i, b in enumerate(batch):
+        n_bi = b["delta_xy"].shape[0]
+        dxy_pad[i, :n_bi, :] = b["delta_xy"]
+        dcs_pad[i, :n_bi, :] = b["delta_cs"]
 
+    # ========== dist_seg ==========
+    dist_pad = torch.zeros(B, n_B_max)
     for i, b in enumerate(batch):
         dist_pad[i, : b["dist_seg"].numel()] = b["dist_seg"]
-    # ---------- speed_A ----------
+
+    # ========== speed_A ==========
     speedA_pad = torch.stack([b["speed_A"] for b in batch])  # (B,)
-    # ---------- B6 ----------
+
+    # ========== B6 ==========
     B6_pad = torch.zeros(B, n_B_max, 6)
     for i, b in enumerate(batch):
-        B6_pad[i, : b["B6_list"].shape[0]] = b["B6_list"]
+        B6_pad[i, : b["B6_list"].shape[0], :] = b["B6_list"]
 
-    # ---------- label ----------
-    label_pad = torch.stack([b["label"] for b in batch])                   # (B,)
+    # ========== label ==========
+    label_pad = torch.stack([b["label"] for b in batch])  # (B,)
 
+    # ========== news_feat（可选） ==========
     news_pad = None
     if batch[0].get("news_feat") is not None:
-        d_in = batch[0]["news_feat"].shape[-1]
-        nB = max(b["news_feat"].shape[1] for b in batch)
-        M = max(b["news_feat"].shape[2] for b in batch)
-        news_pad = torch.zeros(len(batch), nB, M, d_in)
+        d_in    = batch[0]["news_feat"].shape[-1]
+        nB_news = max(b["news_feat"].shape[1] for b in batch)
+        M       = max(b["news_feat"].shape[2] for b in batch)
+        news_pad = torch.zeros(B, nB_news, M, d_in)
         for i, b in enumerate(batch):
             nb, m = b["news_feat"].shape[1:3]
             news_pad[i, :nb, :m] = b["news_feat"]
+
+    # # ===================== DEBUG 输出 =====================
+    # print(f"\n[DEBUG collate_fn_eta] batch size B = {B}")
+    # print(f"  A_raw_pad.shape    = {A_raw_pad.shape}")
+    # print(f"  A_proj_pad.shape   = {A_proj_pad.shape}")
+    # print(f"  A_len.shape        = {A_len.shape}")
+    # print(f"  A_stat_pad.shape   = {A_stat_pad.shape}\n")
+    #
+    # print(f"  ship_raw_pad.shape  = {ship_raw_pad.shape}")
+    # print(f"  ship_proj_pad.shape = {ship_proj_pad.shape}")
+    # print(f"  ship_len.shape      = {ship_len.shape}")
+    # print(f"  ship_stat_pad.shape = {ship_stat_pad.shape}\n")
+    #
+    # print(f"  near_raw_pad.shape  = {near_raw_pad.shape}")
+    # print(f"  near_proj_pad.shape = {near_proj_pad.shape}")
+    # print(f"  near_len.shape      = {near_len.shape}")
+    # print(f"  near_stat_pad.shape = {near_stat_pad.shape}")
+    # print(f"  dxy_pad.shape       = {dxy_pad.shape}")
+    # print(f"  dcs_pad.shape       = {dcs_pad.shape}\n")
+    #
+    # print(f"  dist_pad.shape      = {dist_pad.shape}")
+    # print(f"  speedA_pad.shape    = {speedA_pad.shape}")
+    # print(f"  B6_pad.shape        = {B6_pad.shape}")
+    # print(f"  label_pad.shape     = {label_pad.shape}")
+    # if news_pad is not None:
+    #     print(f"  news_pad.shape      = {news_pad.shape}")
+    # print("=====================================================\n")
+    del batch
+    torch.cuda.empty_cache()
     return (
-        A_raw_pad,        A_proj_pad,        A_len,        A_stat_pad,
-        ship_raw_pad,     ship_proj_pad,     ship_len,     ship_stat_pad,
-        near_raw_pad,     near_proj_pad,     near_len,     near_stat_pad,
-        dxy_pad,          dcs_pad,
-        dist_pad,
-        speedA_pad,
-        B6_pad,
-        label_pad,
-        news_pad
+        A_raw_pad,      # (B, T_A_max, 7)
+        A_proj_pad,     # (B, n_B_max, T_A_max, 7)
+        A_len,          # (B,)
+        A_stat_pad,     # (B, 16)
+
+        ship_raw_pad,   # (B, H, T_ship_pad, 7)
+        ship_proj_pad,  # (B, n_B_max, H, T_ship_pad, 7)
+        ship_len,       # (B, H)
+        ship_stat_pad,  # (B, H, 16)
+
+        near_raw_pad,   # (B, n_B_max, K, T_near_pad, 7)
+        near_proj_pad,  # (B, n_B_max, K, T_near_pad, 7)
+        near_len,       # (B, n_B_max, K)
+        near_stat_pad,  # (B, n_B_max, K, 16)
+
+        dxy_pad,        # (B, n_B_max, K, 2)
+        dcs_pad,        # (B, n_B_max, K, 2)
+
+        dist_pad,       # (B, n_B_max)
+        speedA_pad,     # (B,)
+        B6_pad,         # (B, n_B_max, 6)
+        label_pad,      # (B,)
+        news_pad        # (B, nB_news, M, d_in) or None
     )
+
+
 
 
 
@@ -495,95 +690,139 @@ def evaluate(model, embedder, loader, device, criterion, amp=True):
     embedder.train()
     return tot / cnt
 
+
+
 @torch.no_grad()
 def eval_eta(mdl,
-             emb,
+             Aemb,
+             shipemb,
+             nearemb,
              val_dl,
              device: torch.device,
              criterion,
              use_amp: bool = True) -> float:
     """
     Run one full validation epoch and return the mean loss / metric.
-
-    Parameters
-    ----------
-    mdl : torch.nn.Module
-        ETA predictor (eta_eta_predictor.EtaETAPredictor).
-    emb : torch.nn.Module
-        Shared point-encoder (eta_speed_model.SpeedPredictor 之类).
-    val_dl : torch.utils.data.DataLoader
-        Validation dataloader built with collate_fn_eta.
-    device : torch.device
-    criterion : callable
-        Loss / metric (如 nn.L1Loss(reduction='mean') 或自定义 MARE).
-    use_amp : bool, default False
-        Mixed-precision evaluation on GPU.
-
-    Returns
-    -------
-    float
-        Mean validation loss over the whole val_dl.
     """
     mdl.eval()
-    emb.eval()
+    Aemb.eval()
+    shipemb.eval()
+    nearemb.eval()
 
     tot_loss = 0.0
-    n_seen   = 0
+    n_seen = 0
 
     with torch.no_grad():
-        for batch in val_dl:
-            # ───────── unpack & send to device ────────────────────────────────
+        for step, batch in enumerate(val_dl):
+            if 0 < 10 <= step:
+                break
+            print(f'验证第{step}开始')
+            # ---------------- unpack & to device ----------------
             (A_raw, A_proj, A_len, A_stat,
              ship_raw, ship_proj, ship_len, ship_stat,
              near_raw, near_proj, near_len, near_stat,
-             dxy, dcs, dist_seg,speed_A,
+             dxy, dcs, dist_seg, speed_A,
              B6, label,
              news_feat) = batch
 
-            tensors = [A_raw, A_proj, A_len, A_stat,
-                       ship_raw, ship_proj, ship_len, ship_stat,
-                       near_raw, near_proj, near_len, near_stat,
-                       dxy, dcs, dist_seg,speed_A,
-                       B6, label]
+            A_raw  = A_raw.to(device)
+            A_proj = A_proj.to(device)
+            A_len  = A_len.to(device)
+            A_stat = A_stat.to(device)
 
-            tensors = [t.to(device, non_blocking=True) for t in tensors]
-            (A_raw, A_proj, A_len, A_stat,
-             ship_raw, ship_proj, ship_len, ship_stat,
-             near_raw, near_proj, near_len, near_stat,
-             dxy, dcs, dist_seg,
-             B6, label) = tensors
+            ship_raw  = ship_raw.to(device)
+            ship_proj = ship_proj.to(device)
+            ship_len  = ship_len.to(device)
+            ship_stat = ship_stat.to(device)
 
-            news_feat = news_feat.to(device, non_blocking=True) if news_feat is not None else None
+            near_raw  = near_raw.to(device)
+            near_proj = near_proj.to(device)
+            near_len  = near_len.to(device)
+            near_stat = near_stat.to(device)
 
-            # ───────── forward ────────────────────────────────────────────────
-            with autocast(device_type='cuda', enabled=use_amp):
-                A_emb    = emb(A_raw, A_proj, A_len, A_stat)
-                ship_emb = emb(ship_raw, ship_proj, ship_len, ship_stat)
-                near_emb = emb(near_raw, near_proj, near_len, near_stat)
+            dxy      = dxy.to(device)
+            dcs      = dcs.to(device)
+            dist_seg = dist_seg.to(device)
+            speed_A  = speed_A.to(device)
 
-                news_emb = news_feat  # 若模型内部未用可直接传 None
-                pred = mdl(B6, A_emb, near_emb, dxy, dcs,
-                           ship_emb, dist_seg,speed_A, news_emb).squeeze(-1)
+            B6    = B6.to(device)
+            label = label.to(device)
 
+            if news_feat is not None:
+                news_feat = news_feat.to(device)
+
+            # ---------------- forward ----------------
+            ctx = autocast(device_type='cuda', enabled=use_amp) if _AMP_NEW else autocast(enabled=use_amp)
+            with ctx:
+                # ---- A embedding （必须先 unsqueeze 成 (B,1,T_A,7) / (B,nB,1,T_A,7) / (B,1) / (B,1,16)） ----
+                A_seq_raw  = A_raw.unsqueeze(1)    # (B, 1, T_A, 7)
+                A_seq_proj = A_proj.unsqueeze(2)   # (B, nB, 1, T_A, 7)
+                A_lengths  = A_len.unsqueeze(1)    # (B, 1)
+                A_stat_exp = A_stat.unsqueeze(1)   # (B, 1, 16)
+
+                A_emb = Aemb(
+                    A_seq_raw,    # (B, 1, T_A, 7)
+                    A_seq_proj,   # (B, nB, 1, T_A, 7)
+                    A_lengths,    # (B, 1)
+                    A_stat_exp    # (B, 1, 16)
+                )  # → (B, nB, 1, 128)
+                # ---- ship embedding （保持原调用格式） ----
+                ship_emb = shipemb(
+                    ship_raw,    # (B, H, T_ship, 7)
+                    ship_proj,   # (B, nB, H, T_ship, 7)
+                    ship_len,    # (B, H)
+                    ship_stat    # (B, H, 16)
+                )  # → (B, nB, H, 128)
+                # ---- near embedding （保持原调用格式） ----
+                near_emb = nearemb(
+                    near_raw,    # (B, nB, K, T_near, 7)
+                    near_proj,   # (B, nB, K, T_near, 7)
+                    near_len,    # (B, nB, K)
+                    near_stat    # (B, nB, K, 16)
+                )  # → (B, nB, K, 128)
+
+                # ---- news embedding (可选) ----
+                if news_feat is not None:
+                    news_emb = news_feat.mean(dim=1)  # (B, 128)
+                else:
+                    news_emb = torch.zeros(A_emb.shape[0], 128, device=device)
+
+                # ---- predictor ----
+                pred = mdl(
+                    B6,
+                    A_emb,
+                    near_emb,
+                    dxy,
+                    dcs,
+                    ship_emb,
+                    dist_seg,
+                    speed_A,
+                    news_emb
+                ).squeeze(-1)  # (B,)
                 loss = criterion(pred, label)
 
-            # ───────── accumulate ─────────────────────────────────────────────
             tot_loss += loss.item() * label.size(0)
-            n_seen   += label.size(0)
+            n_seen += label.size(0)
 
     mdl.train()
-    emb.train()
+    Aemb.train()
+    shipemb.train()
+    nearemb.train()
     return tot_loss / n_seen
+
+
+
 
 def compute_hermite_distances(lats, lons, courses, R=6371000.0):
     """
     输入：
-      lats:   (n,) 纬度序列（°）
-      lons:   (n,) 经度序列（°）
-      courses:(n,) 航向序列（°，0°=正北，顺时针）
-      R:      地球半径，默认 6 371 000 m
+      lats:    (n,) 纬度序列（°）
+      lons:    (n,) 经度序列（°）
+      courses: (n,) 航向序列（°，0°=正北，顺时针）
+      R:       地球半径，默认 6 371 000 m
+
     返回：
-      (n-1,) 每段路程（m）
+      dists_nm: (n-1,) 每对相邻点之间的弧长（海里）。若两点投影后重合，则该段距离 = 0。
     """
     # 1) 投影到局部平面 (米)
     lat_rad = np.deg2rad(lats)
@@ -592,34 +831,41 @@ def compute_hermite_distances(lats, lons, courses, R=6371000.0):
     X = R * (lon_rad - lon_rad[0]) * np.cos(lat0)
     Y = R * (lat_rad - lat0)
 
-    # 2) 参数 t：累积平面距离
     n = len(X)
+    # 2) 计算切向量（dx/dt, dy/dt）: 方向由航向给出
+    cr_rad = np.deg2rad(courses)
+    dX = np.sin(cr_rad)  # 对应 X 方向的切向量分量
+    dY = np.cos(cr_rad)  # 对应 Y 方向的切向量分量
+
+    # 3) 计算累积参数 t：任意一对邻点 (i, i+1)，它们的 t 差就是两点在平面上的欧氏距离
     t = np.zeros(n)
-    t[1:] = np.cumsum(np.hypot(np.diff(X), np.diff(Y)))
+    planar_steps = np.hypot(np.diff(X), np.diff(Y))
+    t[1:] = np.cumsum(planar_steps)
 
-    # 3) 保证 t 严格递增
-    mask = np.concatenate(([True], np.diff(t) > 0))
-    t2 = t[mask]
-    X2 = X[mask]
-    Y2 = Y[mask]
-    cr2 = np.deg2rad(courses[mask])  # 转成弧度
+    # 4) 对每对相邻点分别计算：
+    dists = np.zeros(n - 1, dtype=float)  # 单位：米
+    for i in range(n - 1):
+        if planar_steps[i] == 0:
+            dists[i] = 0.0
+            continue
 
-    # 4) 切向量：dx/dt, dy/dt 由航向给出(0°=北)
-    #    北向对应 +Y，东向对应 +X
-    dX2 = np.sin(cr2)
-    dY2 = np.cos(cr2)
+        t0, t1 = t[i], t[i + 1]
+        x0, x1 = X[i], X[i + 1]
+        y0, y1 = Y[i], Y[i + 1]
+        dx0, dx1 = dX[i], dX[i + 1]
+        dy0, dy1 = dY[i], dY[i + 1]
 
-    # 5) 构造 Hermite 样条
-    sx = CubicHermiteSpline(t2, X2, dX2)
-    sy = CubicHermiteSpline(t2, Y2, dY2)
+        sx = CubicHermiteSpline([t0, t1], [x0, x1], [dx0, dx1])
+        sy = CubicHermiteSpline([t0, t1], [y0, y1], [dy0, dy1])
 
-    # 6) 在每段 [t2[i], t2[i+1]] 上积分弧长
-    dists = np.empty(len(t2) - 1)
-    for i in range(len(dists)):
-        a, b = t2[i], t2[i + 1]
         integrand = lambda u: np.hypot(sx(u, 1), sy(u, 1))
-        dists[i], _ = quad(integrand, a, b)
-    return dists
+        dist_seg, _ = quad(integrand, t0, t1)
+        dists[i] = dist_seg
+
+    # 米 转 海里（1 海里 = 1852 米）
+    dists_nm = dists / 1852.0
+    return dists_nm
+
 
 
 def get_node_related_news_tensor(nodes, UN_PRED_NEWS, PRED_NEWS, max_news_num=10):

@@ -25,10 +25,11 @@ from torch.utils.data import DataLoader
 from torch.optim import Adam
 from torch.amp import autocast, GradScaler
 from tqdm import tqdm
-from utils import init_logger, Timer, _AMP_NEW
+from utils import init_logger, Timer, _AMP_NEW, collate_fn_eta
 from utils                import set_seed, save_ckpt, load_ckpt, evaluate
 from pg_dataset_speed           import PgETADataset, collate_fn_speed
 from eta_speed_model      import GroupEmbedder, SpeedPredictor
+from functools import partial
 
 def main(cfg):
     # 输出目录
@@ -50,15 +51,25 @@ def main(cfg):
     val_ds   = PgETADataset(False, cfg.k_near, cfg.h_ship,
                              cfg.radius, cfg.step)
     with Timer("DataLoader build"):
-        train_dl = DataLoader(train_ds, batch_size=cfg.batch,
-                              shuffle=True, num_workers=cfg.workers,
-                              collate_fn=collate_fn_speed, pin_memory=True)
-        val_dl   = DataLoader(val_ds, batch_size=cfg.batch,
-                              shuffle=False, num_workers=cfg.workers,
-                              collate_fn=collate_fn_speed, pin_memory=True)
+        train_dl = DataLoader(
+            train_ds,
+            batch_size=cfg.batch,
+            shuffle=True,
+            num_workers=cfg.workers,
+            pin_memory=True,
+            collate_fn=partial(collate_fn_eta, cfg.h_ship, cfg.k_near)
+        )
+        val_dl = DataLoader(
+            val_ds,
+            batch_size=cfg.batch,
+            shuffle=False,
+            num_workers=cfg.workers,
+            pin_memory=True,
+            collate_fn=partial(collate_fn_eta, cfg.h_ship, cfg.k_near)
+        )
 
     # Model & Opt
-    emb = GroupEmbedder().to(device)
+    emb = GroupEmbedder(use_news=false).to(device)
     mdl = SpeedPredictor().to(device)
     params = list(emb.parameters()) + list(mdl.parameters())
     optim  = Adam(params, lr=cfg.lr, weight_decay=cfg.wd)
@@ -80,7 +91,6 @@ def main(cfg):
         print(f"🔄 Resume from epoch {start_ep}")
 
     best_val = float('inf')
-    # … 前面部分保持不变 …
 
     for ep in range(start_ep, cfg.epochs + 1):
         with Timer(f"Epoch {ep}"):

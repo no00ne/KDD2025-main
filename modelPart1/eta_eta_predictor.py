@@ -1,86 +1,98 @@
-import math
 import torch
+from eta_speed_model import NearAggregator
+
 import torch.nn as nn
+
 from eta_speed_model import NearAggregator
 
 
-
 class ETAPredictorNet(nn.Module):
-    """
-    输入（括号内形状）：
-      • B6           : (B , nB , 6)
-      • A_emb        : (B , 128)                  —— 对应 A_raw
-      • near_emb     : (B , nB , K , 128)
-      • delta_xy     : (B , nB , K , 2)
-      • delta_cs     : (B , nB , K , 2)
-      • ship_emb     : (B , nB , H , 128)        —— broadcast-cache 后的
-      • dist_seg     : (B , nB)                —— 相邻 B-node 的弧长 km
-      • speed_A      : (B ,)                     —— A 点 km/h
-      • news_emb (opt): (B , nB , 128)           —— 若 use_news=True
-    输出：
-      • eta_pred     : (B ,)   —— 预测的剩余小时数
-    """
-    def __init__(self,
-                 use_news: bool = False,
-                 d_emb: int = 128,
-                 d_news: int = 128):
+    def __init__(self, use_news: bool = False, d_emb: int = 128, d_news: int = 128, heads: int = 4):
         super().__init__()
         self.use_news = use_news
-        self.near_aggr = NearAggregator(d_emb, 64)             # 见原实现
-        self.B_proj    = nn.Linear(6, 64)
+        self.near_aggr = NearAggregator(d_emb, 64)
+        self.B_proj = nn.Linear(6, 64)
 
-        fuse_in_dim = d_emb * 3 + 64               # A + near + ship + Bq
+        # 用于把 Bq_f 投影到和 A/near/ship 同维度
+        self.q_proj = nn.Linear(64, d_emb)
+
+        # MultiHeadAttention：key/value 都是三类特征拼接后的序列 (长度=3)
+        self.attn = nn.MultiheadAttention(embed_dim=d_emb, num_heads=heads, batch_first=True)
+
+        fuse_in_dim = d_emb  # attention 输出就是 d_emb
         if use_news:
             fuse_in_dim += d_news
 
-        # 输出 **速度(km / h)**，每个 B-node 一条
-        self.speed_head = nn.Sequential(
-            nn.Linear(fuse_in_dim, 128), nn.ReLU(),
-            nn.Linear(128, 64),          nn.ReLU(),
-            nn.Linear(64, 1)                           # → scalar speed
-        )
+        # attention 之后再接一个小型 MLP 或直接线性映射
+        self.speed_head = nn.Sequential(nn.Linear(fuse_in_dim, 64), nn.ReLU(), nn.Linear(64, 1), nn.Softplus())
 
-    # -----------------------------------------------------------
-    def forward(self,
-                B6, A_emb,
-                near_emb, delta_xy, delta_cs,
-                ship_emb,                       # (B,nB,H,128)
-                dist_seg,                       # (B,nB-1)
-                speed_A,
-                news_emb: torch.Tensor | None = None        # (B,nB,128)
+    def forward(self, B6, A_emb,  # (B, nB, 1, 128)
+                near_emb,  # (B, nB, K, 128)
+                delta_xy,  # (B, nB, K, 2)
+                delta_cs,  # (B, nB, K, 2)
+                ship_emb,  # (B, nB, H, 128)
+                dist_seg,  # (B, nB)
+                speed_A,  # (B,)
+                news_emb=None  # (B, nB, 128)
                 ):
         B, nB, K = near_emb.shape[:3]
         H = ship_emb.size(2)
 
-        # -------- reshape 方便并行计算 --------
-        # flatten batch & nB 维： (B*nB , K , …)
-        near_emb_f = near_emb.view(B * nB, K, -1)
-        dx_f       = delta_xy.view(B * nB, K, -1)
-        dc_f       = delta_cs.view(B * nB, K, -1)
-        # 同理把 B6、ship 拍平成 (B*nB , …)
-        B6_f   = B6.view(B * nB, -1)                      # (BnB,6)
-        ship_f = ship_emb.view(B * nB, H, -1).mean(1)     # (BnB,128) ← 平均聚合
-        A_f    = A_emb.repeat_interleave(nB, dim=0)       # (BnB,128)
+        # flatten batch & nB
+        B6_f = B6.view(B * nB, -1)  # (B*nB, 6)
+        Bq_f = self.B_proj(B6_f)  # (B*nB, 64)
+        Bq_f = self.q_proj(Bq_f)  # (B*nB, 128)
 
-        # -------------- 对每个 B-node 做邻船注意力聚合 --------------
-        Bq_f    = self.B_proj(B6_f)                       # (BnB,64)
-        nearP_f = self.near_aggr(near_emb_f, dx_f, dc_f, Bq_f)   # (BnB,128)
+        # 1) 计算 nearP_f
+        nearP_f = self.near_aggr(near_emb.view(B * nB, K, -1), delta_xy.view(B * nB, K, -1),
+            delta_cs.view(B * nB, K, -1), Bq_f[:, :64]  # 取前 64 维做 attention query
+        )  # (B*nB, 128)
 
-        # 拼接所有特征
-        fuse = torch.cat([A_f, nearP_f, ship_f, Bq_f], dim=-1)    # (BnB, 128*3+64)
-        if self.use_news and news_emb is not None:
-            news_f = news_emb.view(B * nB, -1)                    # (BnB,128)
-            fuse = torch.cat([fuse, news_f], dim=-1)
+        # 2) 计算 shipP_f：对 H 维度做 attention，而不是简单均值
+        #    先把 ship_emb_flat 视作序列 (seq_len=H)
+        ship_flat = ship_emb.view(B * nB, H, -1)  # (B*nB, H, 128)
+        #    用 Bq_f 作为 query，对 ship_flat 做一次点乘注意力
+        #    reshape成 (B*nB, 1, 128) 才能作为 query
+        q = Bq_f.unsqueeze(1)  # (B*nB, 1, 128)
+        shp_attn, _ = self.attn(q,  # query: (B*nB, 1, 128)
+                                ship_flat,  # key:   (B*nB, H, 128)
+                                ship_flat)  # value: (B*nB, H, 128)
+        shipP_f = shp_attn.squeeze(1)  # (B*nB, 128)
 
-        speed_pred = self.speed_head(fuse).view(B, nB)            # (B,nB)
+        # 3) 取出 A_emb 并 flatten
+        A_squeezed = A_emb.squeeze(2)  # (B, nB, 128)
+        A_f = A_squeezed.view(B * nB, -1)  # (B*nB, 128)
 
-        # -----------   ETA 物理累计   -----------
-        #   seg_speed = (v_i + v_{i+1}) / 2
-        speed_pad = torch.cat([speed_A.unsqueeze(1), speed_pred], dim=1)  # (B,nB+1)
-        seg_speed = 0.5 * (speed_pad[:, :-1] + speed_pad[:, 1:])  # (B,nB)
-        #   time_i   = dist_i / (seg_speed_i + ε)
+        # 4) 拼接三类特征，再做一次注意力融合：
+        #    把 A_f、nearP_f、shipP_f 拼成一个长度为3的"序列"
+        feats = torch.stack([A_f, nearP_f, shipP_f], dim=1)  # (B*nB, 3, 128)
+        #    把 Bq_f (已经是 128 维) 作为最终 query
+        q2 = Bq_f.unsqueeze(1)  # (B*nB, 1, 128)
+        attn_out, _ = self.attn(q2,  # query: (B*nB,1,128)
+                                feats,  # key:   (B*nB,3,128)
+                                feats)  # value: (B*nB,3,128)
+        fuse_feat = attn_out.squeeze(1)  # (B*nB, 128)
+
+        # 5) 如果有 news_emb，再拼上去
+        if self.use_news and (news_emb is not None):
+            news_f = news_emb.view(B * nB, -1)  # (B*nB,128)
+            fuse_feat = torch.cat([fuse_feat, news_f], dim=-1)  # (B*nB, 256)
+
+        # 6) 过 MLP 或线性映射得到速度预测
+        speed_pred = self.speed_head(fuse_feat).view(B, nB)  # (B, nB)
+
+        # 下面保持原逻辑：根据 speed_A + speed_pred 做物理累加算 ETA
+        speed_pad = torch.cat([speed_A.unsqueeze(1), speed_pred], dim=1)  # (B, nB+1)
+        print('speed_pad')
+        print(speed_pad[:5, :5])
+        seg_speed = 0.5 * (speed_pad[:, :-1] + speed_pad[:, 1:])  # (B, nB)
+        print('seg_speed')
+        print(dist_seg[:5, :5])
+
         eps = 1e-3
-        seg_time = dist_seg / (seg_speed + eps)                     # hours
-        eta = seg_time.sum(dim=1)                                   # (B,)
+        seg_time = dist_seg / (seg_speed + eps)  # hours
+        eta = seg_time.sum(dim=1)  # (B,)
 
         return eta
+
+
