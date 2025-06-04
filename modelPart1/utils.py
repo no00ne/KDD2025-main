@@ -49,14 +49,37 @@ def save_ckpt(ep, Aemb, shipemb, nearemb, mdl, opt, scaler, path: Path):
 
 
 
-def load_ckpt(path: Path, Aemb, shipemb, nearemb, mdl, opt, scaler, device):
+def load_ckpt(path: Path,
+              Aemb,
+              shipemb,
+              nearemb,
+              mdl,
+              opt=None,
+              scaler=None,
+              device=None,
+              *,
+              strict: bool = True):
+    """Load checkpoint and restore module states.
+
+    Parameters
+    ----------
+    strict : bool, optional
+        When ``False`` mismatched keys in state dicts are ignored so that
+        models with modified structures can still load available weights.
+    """
+
     ckpt = torch.load(str(path), map_location=device)
-    Aemb.load_state_dict(ckpt['Aemb'])
-    shipemb.load_state_dict(ckpt['shipemb'])
-    nearemb.load_state_dict(ckpt['nearemb'])
-    mdl.load_state_dict(ckpt['model'])
-    opt.load_state_dict(ckpt['optim'])
-    if scaler and ckpt.get('scaler'):
+    if Aemb is not None:
+        Aemb.load_state_dict(ckpt['Aemb'], strict=strict)
+    if shipemb is not None:
+        shipemb.load_state_dict(ckpt['shipemb'], strict=strict)
+    if nearemb is not None:
+        nearemb.load_state_dict(ckpt['nearemb'], strict=strict)
+    if mdl is not None:
+        mdl.load_state_dict(ckpt['model'], strict=strict)
+    if opt is not None and 'optim' in ckpt:
+        opt.load_state_dict(ckpt['optim'])
+    if scaler is not None and ckpt.get('scaler'):
         scaler.load_state_dict(ckpt['scaler'])
     return ckpt.get('epoch', 0)
 
