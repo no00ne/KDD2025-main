@@ -35,6 +35,11 @@ def _one():
 DB_DSN = "dbname=eta_voyage2 user=cxsj host=localhost port=5433"
 # Timestamp for train/test split (Unix seconds)
 SPLIT_TS = 1622003458.0
+# When using news data we further constrain the time range of training and test
+# voyages.  Training voyages must end after this timestamp while test voyages
+# must start before ``TEST_MAX_START_TS``.
+TRAIN_MIN_END_TS = 1560700800.0
+TEST_MAX_START_TS = 1640966400.0
 K_NEAR = 32  # number of nearby vessels
 H_SHIP = 10  # number of historical voyages (same vessel)
 STEP_NODE = 32  # Max number of B nodes sampled from a voyage path
@@ -124,14 +129,21 @@ class PgETADataset(Dataset):
         # ---------------- Load voyage id list ----------------
         with psycopg2.connect(DB_DSN, cursor_factory=ext.RealDictCursor) as tmp:
             with tmp.cursor() as cur:
-                cond = (
-                    "end_time < to_timestamp(%s) OR start_time > to_timestamp(%s)"
-                    if train else
-                    "NOT (end_time < to_timestamp(%s) OR start_time > to_timestamp(%s))"
-                )
+                params = [SPLIT_TS, SPLIT_TS]
+                if train:
+                    cond = "end_time < to_timestamp(%s) OR start_time > to_timestamp(%s)"
+                    if self.use_news:
+                        cond = f"({cond}) AND end_time > to_timestamp(%s)"
+                        params.append(TRAIN_MIN_END_TS)
+                else:
+                    cond = "NOT (end_time < to_timestamp(%s) OR start_time > to_timestamp(%s))"
+                    if self.use_news:
+                        cond = f"({cond}) AND start_time < to_timestamp(%s)"
+                        params.append(TEST_MAX_START_TS)
+
                 cur.execute(
                     f"SELECT id FROM voyage_main WHERE {cond};",
-                    (SPLIT_TS, SPLIT_TS),
+                    tuple(params),
                 )
                 self.voy_ids = [row['id'] for row in cur.fetchall()]
         random.shuffle(self.voy_ids)
@@ -301,6 +313,19 @@ class PgETADataset(Dataset):
         lats = [b["latitude"] for b in B_nodes]
 
         # -------- SQL：LATERAL-KNN，每点 LIMIT K --------
+        cond_main = (
+            "AND (m.end_time < to_timestamp(%s) OR m.start_time > to_timestamp(%s))"
+            if self.train_flag else
+            "AND NOT (m.end_time < to_timestamp(%s) OR m.start_time > to_timestamp(%s))"
+        )
+        params_extra = []
+        if self.use_news:
+            if self.train_flag:
+                cond_main = f"{cond_main} AND m.end_time > to_timestamp(%s)"
+                params_extra.append(TRAIN_MIN_END_TS)
+            else:
+                cond_main = f"{cond_main} AND m.start_time < to_timestamp(%s)"
+                params_extra.append(TEST_MAX_START_TS)
         sql = f"""
         WITH pts AS (
             SELECT * FROM UNNEST(
@@ -324,10 +349,10 @@ class PgETADataset(Dataset):
             FROM   voyage_node       n
             JOIN   voyage_main_hist  m  ON m.id = n.voyage_id
             WHERE  m.mmsi <> %s
-              {'AND (m.end_time < to_timestamp(%s) OR m.start_time > to_timestamp(%s))' if self.train_flag else 'AND NOT (m.end_time < to_timestamp(%s) OR m.start_time > to_timestamp(%s))'}
+              {cond_main}
               AND  n.geom && ST_MakeEnvelope(
-                       p.lon-0.6, p.lat-0.6,
-                       p.lon+0.6, p.lat+0.6 , 4326)     -- 粗 BBOX
+                      p.lon-0.6, p.lat-0.6,
+                      p.lon+0.6, p.lat+0.6 , 4326)     -- 粗 BBOX
               AND  ST_DWithin(
                        n.geom,
                        ST_SetSRID(ST_MakePoint(p.lon,p.lat),4326),
@@ -346,6 +371,7 @@ class PgETADataset(Dataset):
             ex_mmsi,
             SPLIT_TS,
             SPLIT_TS,
+            *params_extra,
             radius_m,
             K,
         )
@@ -537,6 +563,14 @@ class PgETADataset(Dataset):
             if self.train_flag else
             "AND NOT (end_time < to_timestamp(%s) OR start_time > to_timestamp(%s))"
         )
+        params_hist_extra = []
+        if self.use_news:
+            if self.train_flag:
+                cond_hist = f"{cond_hist} AND end_time > to_timestamp(%s)"
+                params_hist_extra.append(TRAIN_MIN_END_TS)
+            else:
+                cond_hist = f"{cond_hist} AND start_time < to_timestamp(%s)"
+                params_hist_extra.append(TEST_MAX_START_TS)
         sql_hist = (
             "SELECT id FROM voyage_main "
             " WHERE mmsi=%s AND id<>%s AND end_time<%s "
@@ -546,7 +580,7 @@ class PgETADataset(Dataset):
         ship_ids = [
             r['id'] for r in self._run_sql(
                 sql_hist,
-                (main['mmsi'], main['id'], main['start_time'], SPLIT_TS, SPLIT_TS, self.H),
+                (main['mmsi'], main['id'], main['start_time'], SPLIT_TS, SPLIT_TS, *params_hist_extra, self.H),
                 fetch="all",
             )
         ]
