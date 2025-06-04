@@ -226,7 +226,8 @@ if __name__ == "__main__":
     pa.add_argument('--k_near', type=int, default=32)
     pa.add_argument('--h_ship', type=int, default=10)
     pa.add_argument('--radius', type=float, default=50.0)
-    pa.add_argument('--step', type=int, default=32, help="Sampling step of the voyage(1=each node)")
+    pa.add_argument('--step', type=int, default=32,
+                    help="Maximum number of B nodes sampled from a voyage path")
     pa.add_argument('--clip', type=float, default=0.0)
     pa.add_argument('--amp', action='store_true', help="Use AMP")
     pa.add_argument('--seed', type=int, default=22)
