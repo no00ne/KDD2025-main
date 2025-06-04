@@ -937,7 +937,8 @@ def get_node_related_news_tensor(nodes, UN_PRED_NEWS, PRED_NEWS, max_news_num=10
 
     for idx, node in enumerate(nodes):
         t, lat, lon = node["timestamp"], node["latitude"], node["longitude"]
-
+        if isinstance(t, datetime):
+            t = t.timestamp() 
         # --- 时间切片（利用 searchsorted） ---
         up_cut = np.searchsorted(up_times, t, side="right")   # ≤ node_time
         pr_cut = np.searchsorted(pr_times, t, side="left")    #  > node_time

@@ -81,7 +81,7 @@ def test_dataset():
     init_logger("INFO")
 
     ds = PgETADataset(train=True, k_near=32, h_ship=10,
-                      radius_km=50.0, step=1)
+                      radius_km=50.0, step=1,use_news=True,m_news=4)
     print("Dataset 长度 :", len(ds))
 
     t0 = time.time()
