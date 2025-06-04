@@ -57,7 +57,7 @@ def main(cfg):
     (out / "config.json").write_text(json.dumps(vars(cfg), indent=2), encoding='utf-8')
 
     set_seed(cfg.seed)
-    device = torch.device('cuda:4' if torch.cuda.is_available() else 'cpu')
+    device = torch.device(cfg.device if (cfg.device.startswith('cuda') and torch.cuda.is_available()) else 'cpu')
     cfg.amp = cfg.amp and device.type == 'cuda'
     print("▶ Device:", device, "| AMP:", cfg.amp)
 
@@ -247,6 +247,8 @@ if __name__ == "__main__":
     pa.add_argument('--resume', type=str, default="")
     pa.add_argument('--out_dir', type=str, default="output")
     pa.add_argument('--log_level', type=str, default="ERROR")
+    pa.add_argument('--device', type=str, default='cuda:0',
+                    help="PyTorch device, e.g. cuda:0 or cpu")
     # -------- 新增 --------
     pa.add_argument('--m_news', type=int, default=0, help="Dim of news feature vector; 0 = disable")
     pa.add_argument('--accum_steps', type=int, default=8)
