@@ -10,6 +10,7 @@ class ETAPredictorNet(nn.Module):
     def __init__(self, use_news: bool = False, d_emb: int = 128, d_news: int = 128, heads: int = 4):
         super().__init__()
         self.use_news = use_news
+        self.d_news = d_news
         self.near_aggr = NearAggregator(d_emb, 64)
         self.B_proj = nn.Linear(6, 64)
 
