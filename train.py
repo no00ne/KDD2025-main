@@ -111,11 +111,11 @@ def test(args, model, test_dataloader, scaler, mode = 'Test'):
     
     metrics = validation_loss(y_preds, y_trues)
     args.logger.info(
-    f'{mode} Metrics: '
-    f'MSE={metrics["MSE"]:.4f}, '
-    f'RMSE={metrics["RMSE"]:.4f}, '
-    f'MAE={metrics["MAE"]:.4f}, '
-    f'MAPE={metrics["MAPE"]:.4f}%'
-)
+        f'{mode} Metrics: '
+        f'MSE={metrics["MSE"]:.4f}, '
+        f'RMSE={metrics["RMSE"]:.4f}, '
+        f'MAE={metrics["MAE"]:.4f}, '
+        f'MAPE={metrics["MAPE"]:.4f}%'
+    )
     args.logger.info(f'{mode} process done.')
     return metrics

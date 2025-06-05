@@ -126,6 +126,12 @@ def run_experiment(args, seed):
 
     metrics = test(args, best_model, test_dataloader, scaler)
 
+    # Print MAE and RMSE results to the console
+    if metrics is not None:
+        print(
+            f"Test Metrics: MAE={metrics['MAE']:.4f}, RMSE={metrics['RMSE']:.4f}"
+        )
+
     if seed is not None:
         model_path = args.path + f'/models/model_{args.expid}_{seed}_{args.causal}.pth'
     else:
