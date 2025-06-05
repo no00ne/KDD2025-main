@@ -84,7 +84,7 @@ def main(cfg):
 
     news_enc = None
     if cfg.use_news:
-        news_enc = NewsEmbedder(d_in=16, d_out=cfg.m_news).to(device)
+        news_enc = NewsEmbedder(d_in=16, d_out=128).to(device)
     params = list(Aemb.parameters()) + list(shipemb.parameters()) + list(nearemb.parameters()) + list(mdl.parameters())
     optim = Adam(params, lr=cfg.lr, weight_decay=cfg.wd)
     scheduler = (torch.optim.lr_scheduler.CosineAnnealingLR(optim, T_max=cfg.epochs,
@@ -242,7 +242,7 @@ def main(cfg):
 if __name__ == "__main__":
     pa = argparse.ArgumentParser()
     pa.add_argument('--epochs', type=int, default=20)
-    pa.add_argument('--batch', type=int, default=2)
+    pa.add_argument('--batch', type=int, default=4)
     pa.add_argument('--max_batches', type=int, default=64, help="Max number of batches per epoch (0 = no limit)")
     pa.add_argument('--lr', type=float, default=1e-3)
     pa.add_argument('--wd', type=float, default=0.0)
@@ -250,7 +250,7 @@ if __name__ == "__main__":
     pa.add_argument('--k_near', type=int, default=32)
     pa.add_argument('--h_ship', type=int, default=10)
     pa.add_argument('--radius', type=float, default=50.0)
-    pa.add_argument('--step', type=int, default=32,
+    pa.add_argument('--step', type=int, default=16,
                     help="Maximum number of B nodes sampled from a voyage path")
     pa.add_argument('--clip', type=float, default=0.0)
     pa.add_argument('--amp', action='store_true', help="Use AMP")
@@ -261,12 +261,12 @@ if __name__ == "__main__":
     pa.add_argument('--device', type=str, default='cuda:0',
                     help="PyTorch device, e.g. cuda:0 or cpu")
     # -------- 新增 --------
-    pa.add_argument('--m_news', type=int, default=0, help="Dim of news feature vector; 0 = disable")
-    pa.add_argument('--accum_steps', type=int, default=8)
+    pa.add_argument('--m_news', type=int, default=4, help="Dim of news feature vector; 0 = disable")
+    pa.add_argument('--accum_steps', type=int, default=2)
     pa.add_argument('--use_news', action='store_true', help="Enable news feature flow when provided")
 
     # Dataloader workers
-    pa.add_argument('--workers', type=int, default=16, help="num_workers for DataLoader")
+    pa.add_argument('--workers', type=int, default=8, help="num_workers for DataLoader")
 
     args = pa.parse_args()
     main(args)

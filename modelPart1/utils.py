@@ -612,12 +612,12 @@ def collate_fn_eta(batch: List[Dict], H: int, K: int):
     # ========== news_feat（可选） ==========
     news_pad = None
     if batch[0].get("news_feat") is not None:
-        d_in    = batch[0]["news_feat"].shape[-1]
-        nB_news = max(b["news_feat"].shape[1] for b in batch)
-        M       = max(b["news_feat"].shape[2] for b in batch)
+        d_in = batch[0]["news_feat"].shape[-1]
+        nB_news = max(b["news_feat"].shape[0] for b in batch)  # ① nB 在第 0 维
+        M = max(b["news_feat"].shape[1] for b in batch)  # ② M 在第 1 维
         news_pad = torch.zeros(B, nB_news, M, d_in)
         for i, b in enumerate(batch):
-            nb, m = b["news_feat"].shape[1:3]
+            nb, m = b["news_feat"].shape[:2]
             news_pad[i, :nb, :m] = b["news_feat"]
 
     # # ===================== DEBUG 输出 =====================

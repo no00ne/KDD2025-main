@@ -42,11 +42,24 @@ class NewsEmbedder(nn.Module):
         torch.Tensor
             Shape ``(B, nB, d_out)``.
         """
-        B, nB, M, D = news_feat.shape
-        x = news_feat.view(B * nB * M, D)
-        h = self.mlp(x).view(B, nB, M, -1)
-        return h.mean(2)
 
+        if news_feat.dim() == 4:
+              # (B,nB,M,d_in)  — 保持原逻辑
+            B, nB, M, D = news_feat.shape
+            x = news_feat.view(B * nB * M, D)
+            h = self.mlp(x).view(B, nB, M, -1)
+
+            return h.mean(2)  # (B,nB,d_out)
+        elif news_feat.dim() == 3:
+          # (B,nB,d_in)  — 已提前做过 mean
+            B, nB, D = news_feat.shape
+            x = news_feat.view(B * nB, D)
+            h = self.mlp(x).view(B, nB, -1)
+
+            return h  # (B,nB,d_out)
+        else:
+
+            raise ValueError(f"news_feat dim must be 3 or 4, got {news_feat.shape}")
 
 class LearnablePosEncoding(nn.Module):
     """

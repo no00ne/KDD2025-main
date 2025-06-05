@@ -10,7 +10,7 @@ from modelPart1.utils import eval_eta, collate_fn_eta
 
 
 DB_DSN = "dbname=eta_voyage2 user=cxsj host=localhost port=5433"
-MODEL_PATH = Path("modelPart1/output/best.pth")
+MODEL_PATH = Path("output/best.pth")
 
 
 def query_suez_voyage_ids(dsn: str) -> list[int]:
