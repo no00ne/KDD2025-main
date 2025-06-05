@@ -739,8 +739,11 @@ def eval_eta(mdl,
     nearemb.eval()
 
     tot_loss = 0.0
+    tot_loss_sq = 0.0
     tot_abs = 0.0
+    tot_abs_sq = 0.0
     tot_sq = 0.0
+    tot_sq_sq = 0.0
     n_seen = 0
 
     with torch.no_grad():
@@ -834,9 +837,16 @@ def eval_eta(mdl,
                 loss = criterion(pred, label)
 
             bsz = label.size(0)
-            tot_loss += loss.item() * bsz
-            tot_abs += torch.sum(torch.abs(pred - label)).item()
-            tot_sq += torch.sum((pred - label) ** 2).item()
+            abs_rel = torch.abs((pred - label) / label)
+            abs_err = torch.abs(pred - label)
+            sq_err = (pred - label) ** 2
+
+            tot_loss += torch.sum(abs_rel).item()
+            tot_loss_sq += torch.sum(abs_rel ** 2).item()
+            tot_abs += torch.sum(abs_err).item()
+            tot_abs_sq += torch.sum(abs_err ** 2).item()
+            tot_sq += torch.sum(sq_err).item()
+            tot_sq_sq += torch.sum(sq_err ** 2).item()
             n_seen += bsz
 
     mdl.train()
@@ -850,9 +860,21 @@ def eval_eta(mdl,
 
     mare = tot_loss / n_seen
     mae = tot_abs / n_seen
-    rmse = math.sqrt(tot_sq / n_seen)
+    mse = tot_sq / n_seen
+    rmse = math.sqrt(mse)
 
-    return mare, mae, rmse
+    def _ci(sum_val, sum_sq, mean):
+        var = max(sum_sq / n_seen - mean ** 2, 0.0)
+        se = math.sqrt(var / n_seen)
+        delta = 1.96 * se
+        return mean - delta, mean + delta
+
+    mare_ci = _ci(tot_loss, tot_loss_sq, mare)
+    mae_ci = _ci(tot_abs, tot_abs_sq, mae)
+    mse_ci_low, mse_ci_high = _ci(tot_sq, tot_sq_sq, mse)
+    rmse_ci = (math.sqrt(max(mse_ci_low, 0.0)), math.sqrt(max(mse_ci_high, 0.0)))
+
+    return mare, mae, rmse, mare_ci, mae_ci, rmse_ci
 
 
 

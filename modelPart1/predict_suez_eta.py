@@ -61,8 +61,29 @@ def main():
     voy_ids = query_suez_voyage_ids(DB_DSN)
     val_loader = build_dataloader(voy_ids)
     mdl, Aemb, shipemb, nearemb = load_model(device)
-    mare, mae, rmse = eval_eta(mdl, Aemb, shipemb, nearemb, val_loader, device, criterion=torch.nn.L1Loss(), use_amp=False)
-    print(f"Suez voyages MARE: {mare:.3f}, MAE: {mae:.3f}, RMSE: {rmse:.3f}")
+    mare, mae, rmse, mare_ci, mae_ci, rmse_ci = eval_eta(
+        mdl,
+        Aemb,
+        shipemb,
+        nearemb,
+        val_loader,
+        device,
+        criterion=torch.nn.L1Loss(),
+        use_amp=False,
+    )
+    print(
+        "Suez voyages MARE: {:.3f} [{:.3f}, {:.3f}], MAE: {:.3f} [{:.3f}, {:.3f}], RMSE: {:.3f} [{:.3f}, {:.3f}]".format(
+            mare,
+            mare_ci[0],
+            mare_ci[1],
+            mae,
+            mae_ci[0],
+            mae_ci[1],
+            rmse,
+            rmse_ci[0],
+            rmse_ci[1],
+        )
+    )
 
 
 if __name__ == "__main__":

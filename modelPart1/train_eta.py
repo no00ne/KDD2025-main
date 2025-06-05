@@ -217,7 +217,24 @@ def main(cfg):
         print(f"Epoch {ep}: Train MARE {train_mare:.3f} MAE {train_mae:.3f} RMSE {train_rmse:.3f}")
         # Validation（保持不变）
         with Timer("validation"):
-            val_mare, val_mae, val_rmse = eval_eta(mdl, Aemb, shipemb, nearemb, val_dl, device, criterion, cfg.amp, news_enc)
+            (
+                val_mare,
+                val_mae,
+                val_rmse,
+                mare_ci,
+                mae_ci,
+                rmse_ci,
+            ) = eval_eta(
+                mdl,
+                Aemb,
+                shipemb,
+                nearemb,
+                val_dl,
+                device,
+                criterion,
+                cfg.amp,
+                news_enc,
+            )
         if cfg.scheduler == 'plateau':
             scheduler.step(val_mare)
         else:
@@ -225,7 +242,9 @@ def main(cfg):
 
         print(
             f"Epoch {ep}: Train MARE {train_mare:.3f} MAE {train_mae:.3f} RMSE {train_rmse:.3f}   "
-            f"Val MARE {val_mare:.3f} MAE {val_mae:.3f} RMSE {val_rmse:.3f}"
+            f"Val MARE {val_mare:.3f} [{mare_ci[0]:.3f}, {mare_ci[1]:.3f}] "
+            f"MAE {val_mae:.3f} [{mae_ci[0]:.3f}, {mae_ci[1]:.3f}] "
+            f"RMSE {val_rmse:.3f} [{rmse_ci[0]:.3f}, {rmse_ci[1]:.3f}]"
         )
 
         # Save checkpoint（保持不变）
