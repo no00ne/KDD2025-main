@@ -22,8 +22,18 @@ class ETAPredictorNet(nn.Module):
         if use_news:
             fuse_in_dim += d_news
 
-        # attention 之后再接一个小型 MLP 或直接线性映射
-        self.speed_head = nn.Sequential(nn.Linear(fuse_in_dim, 64), nn.ReLU(), nn.Linear(64, 1), nn.Softplus())
+        self._speed_in_dim = fuse_in_dim
+        self._build_speed_head(fuse_in_dim)
+
+    def _build_speed_head(self, in_dim: int):
+        """(Re)build speed prediction head with the given input dim."""
+        self.speed_head = nn.Sequential(
+            nn.Linear(in_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),
+            nn.Softplus()
+        )
+        self._speed_in_dim = in_dim
 
     def forward(self, B6, A_emb,  # (B, nB, 1, 128)
                 near_emb,  # (B, nB, K, 128)
@@ -81,6 +91,11 @@ class ETAPredictorNet(nn.Module):
             fuse_feat = torch.cat([fuse_feat, news_f], dim=-1)  # (B*nB, 256)
 
         # 6) 过 MLP 或线性映射得到速度预测
+        if fuse_feat.size(-1) != self._speed_in_dim:
+            # 若实际维度与初始化时不同，重新构建预测头以避免 shape 错误
+            self._build_speed_head(fuse_feat.size(-1))
+            self.speed_head = self.speed_head.to(fuse_feat.device)
+
         speed_pred = self.speed_head(fuse_feat).view(B, nB)  # (B, nB)
 
         # 下面保持原逻辑：根据 speed_A + speed_pred 做物理累加算 ETA
